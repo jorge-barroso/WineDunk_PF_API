@@ -44,14 +44,13 @@ public class RequestsCreator extends EncodeURL {
 		
 		return responseBuffer.toString();
 	}
-	
-	public String createGetRequest(String urlPath, String relURL) throws IOException
+
+	public String createGetRequest(String url) throws IOException
 	{
 		//Create request
-		String fullURL = new String(urlPath + relURL);
-		fullURL = fullURL.replaceAll(" ", "+");
-		System.out.println("Full URL: " + fullURL);  //TODO DELETE
-		URL obj = new URL(fullURL);
+		url = url.replaceAll(" ", "+");
+		System.out.println("Full URL: " + url);  //TODO DELETE
+		URL obj = new URL(url);
 		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 				
 		//add request header
@@ -69,5 +68,12 @@ public class RequestsCreator extends EncodeURL {
 		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
 		in.close();
 		return responseBuffer.toString();
+	}
+
+	public String createGetRequest(String urlPath, String relURL) throws IOException
+	{
+		//Create request
+		String fullURL = new String(urlPath + relURL);
+		return this.createGetRequest(fullURL);
 	}
 }

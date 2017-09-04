@@ -31,7 +31,7 @@ import winedunk.pf.services.RequestsCreator;
 /**
  * Servlet implementation class ProductFeedsPocessor
  */
-@WebServlet("/ProductFeedsPocessor")
+@WebServlet(urlPatterns="/ProductFeedsPocessor", asyncSupported=true)
 public class ProductFeedsPocessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	Properties properties;
