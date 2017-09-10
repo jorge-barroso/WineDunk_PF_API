@@ -1,6 +1,6 @@
 package winedunk.pf.helpers;
 
-public enum tblWineFields {
+public enum TblWineFields {
 
 	NAME("name"),
 	COUNTRY("countryId"),
@@ -18,7 +18,7 @@ public enum tblWineFields {
 	
 	private final String selectedField;
 
-	private tblWineFields(String field) {
+	private TblWineFields(String field) {
 		this.selectedField = field;
 	}
 	

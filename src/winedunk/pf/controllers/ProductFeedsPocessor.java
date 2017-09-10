@@ -122,7 +122,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		}
 
 		//set amount of productfeeds to be processed and liberate latch so the second thread is able to start
-		productFeedsAmount = allProductFeedsList.size();
+		this.productFeedsAmount = allProductFeedsList.size();
 		latch.countDown();
 		for(Tblpf pf : allProductFeedsList)
 		{
@@ -171,7 +171,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 	private void doWork()
 	{
 		ExecutorService executor = Executors.newFixedThreadPool(this.limit);
-		while(productFeedsAmount>0 || !this.productFeedsToProcess.isEmpty())
+		while(this.productFeedsAmount>0 || !this.productFeedsToProcess.isEmpty())
 		{
 			Tblpf pf;
 			try {
