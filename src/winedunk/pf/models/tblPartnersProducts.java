@@ -35,9 +35,9 @@ public class tblPartnersProducts {
 	
     @ManyToOne
     @JoinColumn(name = "wineId")
-    private tblWines wineId;
-    public tblWines getWineId() { return wineId; }
-	public void setWineId(tblWines wineId) { this.wineId = wineId; }
+    private tblWines tblWines;
+    public tblWines getTblWines() { return tblWines; }
+	public void setTblWines(tblWines tblWines) { this.tblWines = tblWines; }
 	
     @ManyToOne
     @JoinColumn(name = "shopId")
@@ -110,7 +110,7 @@ public class tblPartnersProducts {
     {
         this.id = null;
         this.partnerId = null;
-        this.wineId = null;
+        this.tblWines = null;
         this.shopId = null;
         this.partnerProductId = null;
         this.partnerProductPrice = null;

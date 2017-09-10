@@ -5,14 +5,15 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -34,8 +35,17 @@ import winedunk.pf.services.RequestsCreator;
 @WebServlet(urlPatterns="/ProductFeedsPocessor", asyncSupported=true)
 public class ProductFeedsPocessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	Properties properties;
 
+	Properties properties;
+	int productFeedsAmount;
+	CountDownLatch latch;
+	int limit = 5;
+	BlockingQueue<Tblpf> productFeedsToProcess = new ArrayBlockingQueue<Tblpf>(limit);
+
+
+	/**
+	 * 
+	 */
     public ProductFeedsPocessor() {
         super();
         try {
@@ -46,26 +56,82 @@ public class ProductFeedsPocessor extends HttpServlet {
 		}
     }
 
+    /**
+     * 
+     */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		Date currentDate = new Date();		
-
-	    //Map response to a List of Tblpf objects
-	    ObjectMapper mapper = new ObjectMapper();
-	    String productFeeds = new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getAll");
-	    List<Tblpf> allProductFeedsList = mapper.readValue(productFeeds, mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
-
-	    //List with productfeeds to be processed
-	    List<Tblpf> productFeedsToProcess = new ArrayList<Tblpf>();
-	    ExecutorService executor = Executors.newFixedThreadPool(8);
-
-		if(request.getParameter("id")==null)
+		//TODO change lastStandardisation date from every processed pf
+		
+		//if we have an id it's because it was called manually, so we quickly process it
+		if(request.getParameter("id")!=null)
 		{
-			for(Tblpf pf : allProductFeedsList)
-			{
-				executor.submit(new Runnable() {
+			this.processProductFeed(Integer.valueOf(request.getParameter("id")));
+		}
+		else
+		{
+			//Thread one to populate list
+			Thread t1 = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					populateList();
+				}
+			});
+			//Thread two to take values from it
+			Thread t2 = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					doWork();
+				}
+			});
 
-					@Override
-					public void run() {
+			//initialize latch to make thread two wait until total amount of product feeds to be processed is declared by thread one
+			CountDownLatch latch = new CountDownLatch(1);
+			
+			//start threads
+			t1.start();
+
+			try {
+				latch.await();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			t2.start();
+		}
+	}
+
+	/**
+	 * 
+	 */
+	private void populateList()
+	{
+		Date currentDate = new Date();
+		
+		ExecutorService executor = Executors.newFixedThreadPool(this.limit);
+		//Map response to a List of Tblpf objects
+	    ObjectMapper mapper = new ObjectMapper();
+		String productFeeds;
+		List<Tblpf> allProductFeedsList;
+		try {
+			productFeeds = new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getAll");
+			allProductFeedsList = mapper.readValue(productFeeds, mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
+		} catch (IOException e2) {
+			e2.printStackTrace();
+			return;
+		}
+
+		//set amount of productfeeds to be processed and liberate latch so the second thread is able to start
+		productFeedsAmount = allProductFeedsList.size();
+		latch.countDown();
+		for(Tblpf pf : allProductFeedsList)
+		{
+
+			executor.execute(new Runnable() {
+
+				@Override
+				public void run() {
+					try {
 						if(pf.getStartTime().getTime() > Calendar.getInstance().getTimeInMillis())
 							return;
 
@@ -90,46 +156,59 @@ public class ProductFeedsPocessor extends HttpServlet {
 						lastExecution.setTimeInMillis(timestamp.getTime());
 						//if the next execution time is in the past, then we process it now
 						if(expression.getNextValidTimeAfter(lastExecution.getTime()).getTime() <= currentDate.getTime())
-							synchronized(new Object()) {productFeedsToProcess.add(pf);}
+							productFeedsToProcess.add(pf);
+					} finally {
+						synchronized(new Object()) { productFeedsAmount--; }
 					}
-					
-				});
-
-				executor.shutdown();
-				try {
-					executor.awaitTermination(1l, TimeUnit.DAYS);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
 				}
-			}
+			});
 		}
-		else
-		{
-			String pfJson = new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getById&id="+request.getParameter("id"));
-			productFeedsToProcess.add(new ObjectMapper().readValue(pfJson, Tblpf.class));
-		}
+	}
 
-		executor = Executors.newFixedThreadPool(5);
-		for(Tblpf pf : productFeedsToProcess)
+	/**
+	 * 
+	 */
+	private void doWork()
+	{
+		ExecutorService executor = Executors.newFixedThreadPool(this.limit);
+		while(productFeedsAmount>0 || !this.productFeedsToProcess.isEmpty())
 		{
-			executor.submit(new Runnable() {
+			Tblpf pf;
+			try {
+				pf = productFeedsToProcess.take();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return;
+			}
+			executor.execute(new Runnable() {
 
 				@Override
 				public void run() {
-					try{
-						//TODO send pf to be processed
-						new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=process&id="+pf.getId());
-					} catch(Exception e) {
-						try {
-							new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=fail&id="+pf.getId());
-						} catch (IOException e1) {
-							e1.printStackTrace();
-						}
-						return;
-					}
+					processProductFeed(pf.getId());
 				}
 				
 			});
+		}
+		executor.shutdown();
+	}
+
+	/**
+	 * 
+	 * @param id
+	 */
+	private void processProductFeed(int id)
+	{
+		try{
+			//TODO send pf to be processed
+			new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=process&id="+id);
+		} catch(Exception e) {
+			try {
+				new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=fail&id="+id);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+			return;
 		}
 	}
 

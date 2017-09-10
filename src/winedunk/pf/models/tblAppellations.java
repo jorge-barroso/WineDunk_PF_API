@@ -44,10 +44,16 @@ public class tblAppellations {
 
 	@ManyToOne
     @JoinColumn(name = "countryId")
-    private tblCountries countryId;
-    public tblCountries getCountryId() { return countryId; }
-	public void setCountryId(tblCountries countryId) { this.countryId = countryId; }
-	
+    private tblCountries tblCountries;
+    public tblCountries getTblCountries() { return tblCountries; }
+	public void setTblCountries(tblCountries tblCountries) { this.tblCountries = tblCountries; }
+
+	@ManyToOne
+    @JoinColumn(name = "regionId")
+    private tblRegions tblRegions;
+    public tblRegions getTblRegions() { return tblRegions; }
+	public void setTblRegions(tblRegions tblRegions) { this.tblRegions = tblRegions; }
+
     public tblAppellations(Integer id) { this.id = id; }
     public tblAppellations(String name) { this.name = name; }
     public tblAppellations()
@@ -56,6 +62,6 @@ public class tblAppellations {
         this.name = null;
         this.deleted = null;
         this.wines = null;
-        this.countryId = null;
+        this.tblCountries = null;
     }
 }
