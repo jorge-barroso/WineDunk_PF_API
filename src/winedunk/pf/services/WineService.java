@@ -6,6 +6,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.ejb.LocalBean;
@@ -21,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.neovisionaries.i18n.CountryCode;
 
 import winedunk.pf.helpers.NoDataFieldsValues;
+import winedunk.pf.models.TblPFCountryNameMappingTable;
 import winedunk.pf.models.tblAppellations;
 import winedunk.pf.models.tblClosures;
 import winedunk.pf.models.tblColours;
@@ -32,24 +34,24 @@ import winedunk.pf.models.tblWines;
 @Stateful
 @LocalBean
 public class WineService {
-	private final RequestsCreator requestsCreator;
-	private final ObjectMapper mapper;
 	private String apiUrl;
+	private FTPClient ftp;
+	private final RequestsCreator requestsCreator = new RequestsCreator();
+	private final ObjectMapper mapper = new ObjectMapper();
 	private final Map<String, String> countries = new HashMap<String, String>();
-	FTPClient ftp;
+	private final Pattern[] bottleSizePatterns = new Pattern[] {Pattern.compile("\\d+cl"), Pattern.compile("\\d+ml"), Pattern.compile("\\d+L"), Pattern.compile("\\d+Ltr")};
+	private final Pattern vintagePattern = Pattern.compile("[0-9]{4}");
+
 	/**
 	 * @throws IOException 
 	 * 
 	 */
 	public WineService(FTPClient ftp) throws IOException 
 	{
-		this.requestsCreator = new RequestsCreator();
-		this.mapper = new ObjectMapper();
-
 		for(String countryCode : Locale.getISOCountries())
 		{
         	this.countries.put(new Locale("", countryCode).getDisplayCountry(), countryCode);
-		}
+		}	
 	}
 
 	/**
@@ -88,7 +90,7 @@ public class WineService {
 	public tblWines getInstance(String name, String gtin, String bottleSize, String vintage) throws JsonParseException, JsonMappingException, IOException
 	{
 		tblWines wine;
-		//TODO test for possible NullPointerException
+
 		if(gtin!=null)
 		{
 			wine = this.mapper .readValue(this.requestsCreator.createGetRequest(this.apiUrl, "wines?action=getByGtin&gtin="+gtin), tblWines.class);
@@ -101,8 +103,10 @@ public class WineService {
 									 + "&vintage="+vintage;
 			wine = this.mapper .readValue(this.requestsCreator.createGetRequest(this.apiUrl, "wines?"+requestParameters), tblWines.class);
 		}
+
 		return wine;
 	}
+
 	/**
 	 * 
 	 * @param country
@@ -110,28 +114,30 @@ public class WineService {
 	 */
 	public tblCountries getCountry(String countryName)
 	{
-		switch(countryName.toLowerCase())
-		{
-			case "usa":
-			case "u.s.a.":
-			case "america":
-			case "united states of america":
-				countryName = "United States";
-				break;
-			case "england":
-			case "scotland":
-			case "ireland":
-			case "wales":
-			case "uk":
-			case "great britain":
-				countryName = "United Kingdom";
-				break;
-			case "republic of macedonia":
-				countryName="Macedonia";
-		}
 
 		if(countryName.contains("Product of"));
 		countryName = countryName.replace("Product of ", "");
+
+		TblPFCountryNameMappingTable countryNameMapping;
+		try {
+			String countryNameMappingJson = this.requestsCreator.createGetRequest(apiUrl, "TblPFCountryNameMappingTableController?action=getByName&name="+countryName);
+			countryNameMapping = this.mapper.readValue(countryNameMappingJson, TblPFCountryNameMappingTable.class);
+		} catch (JsonParseException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		} catch (JsonMappingException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		}
+
+		if(countryNameMapping.getId()!=null)
+			countryName = countryNameMapping.getTblCountries().getName();
 
 		tblCountries country;
 		try {
@@ -222,10 +228,27 @@ public class WineService {
 	{
 		return this.getAppellation("getByName", "name="+appellationName);
 	}
+	/**
+	 * 
+	 * @param appellationId
+	 * @return
+	 * @throws JsonParseException
+	 * @throws JsonMappingException
+	 * @throws IOException
+	 */
 	public tblAppellations getAppellation(Integer appellationId) throws JsonParseException, JsonMappingException, IOException
 	{
 		return this.getAppellation("getAppellation", "id="+appellationId);
 	}
+	/**
+	 * 
+	 * @param action
+	 * @param parameters
+	 * @return
+	 * @throws JsonParseException
+	 * @throws JsonMappingException
+	 * @throws IOException
+	 */
 	private tblAppellations getAppellation(String action, String parameters) throws JsonParseException, JsonMappingException, IOException
 	{
 		String appellationJson = this.requestsCreator.createGetRequest(apiUrl, "appellations?"+parameters);
@@ -237,30 +260,111 @@ public class WineService {
 	 * 
 	 * @param winery
 	 * @return
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
+	 * @throws IOException 
 	 */
-	public tblWineries getWinery(String winery)
+	public tblWineries getWinery(String wineryName) throws JsonParseException, JsonMappingException, IOException
 	{
-		return null;
+		String wineryJson = this.requestsCreator.createGetRequest(apiUrl, "wineries?action=getByName&name="+wineryName);
+
+		return this.mapper.readValue(wineryJson, tblWineries.class);
 	}
 
 	/**
 	 * 
 	 * @param closure
-	 * @return
+	 * @return An object representing the row from tblClosures containing the desired closure
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	public tblClosures getClosure(String closure)
+	public tblClosures getClosure(String closureName) throws JsonParseException, JsonMappingException, IOException
 	{
-		return null;
+		String closureJson = this.requestsCreator.createGetRequest(apiUrl, "closures?action=getByName&name="+closureName);
+
+		return this.mapper.readValue(closureJson, tblClosures.class);
 	}
 
 	/**
 	 * 
 	 * @param colour
 	 * @return
+	 * @throws IOException 
+	 * @throws JsonMappingException 
+	 * @throws JsonParseException 
 	 */
-	public tblColours getColour(String colour)
+	public tblColours getColour(String colourName) throws JsonParseException, JsonMappingException, IOException
 	{
-		return null;
+		String colourJson = this.requestsCreator.createGetRequest(apiUrl, "colours?action=getByName&name="+colourName);
+
+		return this.mapper.readValue(colourJson, tblColours.class);
+	}
+
+	/**
+	 * Extract vintage and bottle size if it appears on the name and it wasn't found while parsing the website
+	 * @param wine The wine we are building
+	 */
+	public tblWines completeDataFromName(tblWines wine)
+	{
+		//VINTAGE
+		if(wine.getVintage()==null)
+		{
+			final Matcher vintageMatcher = this.vintagePattern.matcher(wine.getName());
+
+			if(vintageMatcher.find())
+			{
+				String vintage = wine.getName().substring(vintageMatcher.start(), vintageMatcher.end());
+				wine.setName(wine.getName().replace(vintage, ""));
+	
+				if(wine.getVintage()==null)
+				{
+					wine.setVintage(Integer.parseInt(vintage));
+				}
+			}
+		}
+
+		if(wine.getBottleSize()==null)
+		{
+			/*
+			 * check the patterns one by one,
+			 * if one of them matches we take the value and remove the bottlesize from the name
+			 * */
+			Float bottleSize = null;
+			BottleSizeLoop:
+			for(int i=0;i<this.bottleSizePatterns.length;i++)
+			{
+				Matcher bottleSizeMatcher = bottleSizePatterns[i].matcher(wine.getName());
+				if(bottleSizeMatcher.find())
+				{
+					wine.setName(wine.getName().replace(wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end()), "").trim());
+
+					switch(i)
+					{
+						case 0:
+							bottleSize = Float.parseFloat(wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end()).replace("cl", ""));
+							break BottleSizeLoop;
+						case 1:
+							bottleSize = Float.parseFloat(wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end()).replace("ml", ""))/10;
+							break BottleSizeLoop;
+						case 2:
+							bottleSize = Float.parseFloat(wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end()).replace("L", ""))*100;
+							break BottleSizeLoop;
+						case 3:
+							bottleSize = Float.parseFloat(wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end()).replace("Ltr", ""))*100;
+							break BottleSizeLoop;
+					}
+				}
+			}
+			
+			//if we haven't set the size of the bottle yet and we have found it in the name, we add it
+			if(wine.getBottleSize()==null && bottleSize!=null)
+			{
+				wine.setBottleSize(bottleSize);
+			}
+		}
+
+		return wine;
 	}
 
 	public String getImageName(String imageUrl, Integer wineId)
@@ -271,7 +375,6 @@ public class WineService {
 
 		return finalImageName;
 	}
-
 	/**
 	 * 
 	 * @param folder

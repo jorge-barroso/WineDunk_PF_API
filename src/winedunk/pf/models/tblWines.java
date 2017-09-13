@@ -92,16 +92,13 @@ public class tblWines {
 		return this;
 	}
 
-	@ManyToMany
-	@JoinTable(name = "tblWinesWineTypes", joinColumns = @JoinColumn(name = "wineId"), inverseJoinColumns = @JoinColumn(name = "typeId"))
-	private List<tblWineTypes> wineTypes;
-
-	public List<tblWineTypes> getWineTypes() {
-		return wineTypes;
+	@OneToMany(mappedBy = "tblWines", targetEntity=TblWinesWineType.class)
+	private List<TblWinesWineType> tblWinesWineType;
+	public List<TblWinesWineType> getTblWinesWineType() {
+		return tblWinesWineType;
 	}
-
-	public tblWines setWineTypes(List<tblWineTypes> wineTypes) {
-		this.wineTypes = wineTypes;
+	public tblWines setTblWinesWineType(List<TblWinesWineType> tblWinesWineType) {
+		this.tblWinesWineType = tblWinesWineType;
 		return this;
 	}
 

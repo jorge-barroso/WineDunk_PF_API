@@ -72,11 +72,11 @@ public class PartnersProductsService {
      * @throws InterruptedException
      * @throws IOException 
      */
-    public tblPartnersProducts getInstance(String apiUrl, String partnerProductId, String merchantProductId) throws InterruptedException, IOException
+    public tblPartnersProducts getInstance(String apiUrl, String partnerProductId, String merchantProductId) throws IOException
     {
     	this.setApiUrl(apiUrl);
 
-    	//get possibly existing wine
+    	//get possibly existing product
     	String requestParameters = "partnerProductId="+partnerProductId
  		 						 + "&merchanProductId="+merchantProductId;
     	

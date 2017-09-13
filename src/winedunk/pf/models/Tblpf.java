@@ -19,19 +19,21 @@ public class Tblpf implements Serializable {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private int id;
+	private Integer id;
 
 	private String description;
 
 	private String downloadURL;
 
-	private int importPriority;
+	private Integer importPriority;
 
 	private Timestamp lastImportation;
 
 	private Timestamp lastStandardisation;
 
-	private int partnerId;
+	@ManyToOne
+	@JoinColumn(name="partnerId")
+	private tblPartners tblPartners;
 
 	private Time startTime;
 
@@ -67,11 +69,11 @@ public class Tblpf implements Serializable {
 	public Tblpf() {
 	}
 
-	public int getId() {
+	public Integer getId() {
 		return this.id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -91,11 +93,11 @@ public class Tblpf implements Serializable {
 		this.downloadURL = downloadURL;
 	}
 
-	public int getImportPriority() {
+	public Integer getImportPriority() {
 		return this.importPriority;
 	}
 
-	public void setImportPriority(int importPriority) {
+	public void setImportPriority(Integer importPriority) {
 		this.importPriority = importPriority;
 	}
 
@@ -115,12 +117,12 @@ public class Tblpf implements Serializable {
 		this.lastStandardisation = lastStandardisation;
 	}
 
-	public int getPartnerId() {
-		return this.partnerId;
+	public tblPartners getTblPartners() {
+		return this.tblPartners;
 	}
 
-	public void setPartnerId(int partnerId) {
-		this.partnerId = partnerId;
+	public void setTblPartners(tblPartners tblPartners) {
+		this.tblPartners = tblPartners;
 	}
 
 	public Time getStartTime() {
@@ -233,7 +235,7 @@ public class Tblpf implements Serializable {
 	public String toString() {
 		return "Tblpf [id=" + id + ", description=" + description + ", downloadURL=" + downloadURL + ", importPriority="
 				+ importPriority + ", lastImportation=" + lastImportation + ", lastStandardisation="
-				+ lastStandardisation + ", partnerId=" + partnerId + ", startTime=" + startTime + ", timePeriod="
+				+ lastStandardisation + ", partnerId=" + tblPartners + ", startTime=" + startTime + ", timePeriod="
 				+ timePeriod + ", tblpfmappings=" + tblpfmappings + ", tblpfproducts=" + tblpfproducts
 				+ ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
 				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs + "]";
