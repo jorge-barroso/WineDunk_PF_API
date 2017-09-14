@@ -11,10 +11,12 @@ import javax.persistence.*;
 @Entity
 @Table(name="tblpfproducts")
 @NamedQueries({
-	@NamedQuery(name="Tblpfproduct.findAll", query="SELECT t FROM Tblpfproduct t"),
+	@NamedQuery(name="Tblpfproduct.findAll", query="SELECT t FROM Tblpfproduct t ORDER BY t.merchantName"),
+	@NamedQuery(name="Tblpfproduct.findByTblpf", query="SELECT t FROM Tblpfproduct t WHERE t.tblpf = :tblpf ORDER BY t.merchantName"),
 	@NamedQuery(name="Tblpfproduct.findByPartnerIdAndMerchantId", query="SELECT t FROM Tblpfproduct t "
 																	  + "WHERE t.merchantProductId = :merchantProductId "
-																	  	+ "AND t.partnerProductId = :partnerProductId")
+																	  	+ "AND t.partnerProductId = :partnerProductId "
+																	  + "ORDER BY t.merchantName")
 })
 
 public class Tblpfproduct implements Serializable {
@@ -22,11 +24,11 @@ public class Tblpfproduct implements Serializable {
 
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private int id;
+	private Integer id;
 
 	private String clicktag;
 
-	private float deliveryCost;
+	private Float deliveryCost;
 
 	private String imageURL;
 
@@ -36,12 +38,14 @@ public class Tblpfproduct implements Serializable {
 
 	private String name;
 
+	private String partnerMerchantId;
+
 	@Lob
 	private String partnerProductDescription;
 
 	private String partnerProductId;
 
-	private float price;
+	private Float price;
 
 	private String productType;
 
@@ -55,11 +59,11 @@ public class Tblpfproduct implements Serializable {
 	public Tblpfproduct() {
 	}
 
-	public int getId() {
+	public Integer getId() {
 		return this.id;
 	}
 
-	public void setId(int id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
@@ -71,11 +75,11 @@ public class Tblpfproduct implements Serializable {
 		this.clicktag = clicktag;
 	}
 
-	public float getDeliveryCost() {
+	public Float getDeliveryCost() {
 		return this.deliveryCost;
 	}
 
-	public void setDeliveryCost(float deliveryCost) {
+	public void setDeliveryCost(Float deliveryCost) {
 		this.deliveryCost = deliveryCost;
 	}
 
@@ -127,11 +131,11 @@ public class Tblpfproduct implements Serializable {
 		this.partnerProductId = partnerProductId;
 	}
 
-	public float getPrice() {
+	public Float getPrice() {
 		return this.price;
 	}
 
-	public void setPrice(float price) {
+	public void setPrice(Float price) {
 		this.price = price;
 	}
 
@@ -157,6 +161,14 @@ public class Tblpfproduct implements Serializable {
 
 	public void setTblpf(Tblpf tblpf) {
 		this.tblpf = tblpf;
+	}
+
+	public String getPartnerMerchantId() {
+		return partnerMerchantId;
+	}
+
+	public void setPartnerMerchantId(String partnerMerchantId) {
+		this.partnerMerchantId = partnerMerchantId;
 	}
 
 }

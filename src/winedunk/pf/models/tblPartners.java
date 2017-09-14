@@ -35,7 +35,6 @@ public class tblPartners {
     private Boolean deleted;
     public Boolean isDeleted() { return deleted; }
     public void setDeleted(Boolean deleted) { this.deleted = deleted; }
-	public Boolean getDeleted() { return deleted; }
     
     @ManyToOne
     @JoinColumn(name = "partnersTypesId")
@@ -55,10 +54,11 @@ public class tblPartners {
 	public List<tblClicks> getClicks() { return clicks; }
 	public void setClicks(List<tblClicks> clicks) { this.clicks = clicks; }
 
-	@OneToMany(mappedBy="tblPartners", targetEntity=Tblpf.class)
-	private List<Tblpf> tblpf;
-	public List<Tblpf> getTblpf() { return tblpf; }
-	public void setTblpf(List<Tblpf> tblpf) { this.tblpf = tblpf; }
+	@OneToMany(mappedBy = "tblPartners", targetEntity = Tblpf.class)
+	@JsonBackReference("partners_productfeeds")
+	private List<Tblpf> tblPfs;
+	public List<Tblpf> getTblpfs() { return tblPfs; }
+	public void setTblpfs(List<Tblpf> tblPfs) { this.tblPfs = tblPfs; }
 
 	public tblPartners(Integer id) { this.id = id;}
     public tblPartners()

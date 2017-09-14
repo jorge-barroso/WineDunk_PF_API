@@ -85,6 +85,7 @@ public class GeneralService {
 	    return new String(hexChars);
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void makeSearch(HttpServletRequest request, String crudUrl)
 	{
 		ResultsService resultsService = new ResultsService();

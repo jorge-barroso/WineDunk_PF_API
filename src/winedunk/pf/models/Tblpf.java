@@ -32,7 +32,7 @@ public class Tblpf implements Serializable {
 	private Timestamp lastStandardisation;
 
 	@ManyToOne
-	@JoinColumn(name="partnerId")
+	@JoinColumn(name = "partnerId")
 	private tblPartners tblPartners;
 
 	private Time startTime;
@@ -65,6 +65,12 @@ public class Tblpf implements Serializable {
 	//bi-directional many-to-one association to Tblpfstatuschangelog
 	@OneToMany(mappedBy="tblpf")
 	private List<Tblpfstatuschangelog> tblpfstatuschangelogs;
+
+	private Boolean isZip;
+	
+	private Boolean hasHeader;
+	
+	private String separator;
 
 	public Tblpf() {
 	}
@@ -231,6 +237,30 @@ public class Tblpf implements Serializable {
 		return tblpfstatuschangelog;
 	}
 
+	public Boolean getIsZip() {
+		return isZip;
+	}
+
+	public void setIsZip(Boolean isZip) {
+		this.isZip = isZip;
+	}
+
+	public Boolean getHasHeader() {
+		return hasHeader;
+	}
+
+	public void setHasHeader(Boolean hasHeader) {
+		this.hasHeader = hasHeader;
+	}
+
+	public String getSeparator() {
+		return separator;
+	}
+
+	public void setSeparator(String separator) {
+		this.separator = separator;
+	}
+
 	@Override
 	public String toString() {
 		return "Tblpf [id=" + id + ", description=" + description + ", downloadURL=" + downloadURL + ", importPriority="
@@ -238,6 +268,16 @@ public class Tblpf implements Serializable {
 				+ lastStandardisation + ", partnerId=" + tblPartners + ", startTime=" + startTime + ", timePeriod="
 				+ timePeriod + ", tblpfmappings=" + tblpfmappings + ", tblpfproducts=" + tblpfproducts
 				+ ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
-				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs + "]";
+				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs
+				+ ", isZip=" + isZip + ", hasHeader=" + hasHeader + ", separator=" + separator + "]";
+	}
+
+	public String toBodyRequest() {
+		return "id=" + id + ", description=" + description + ", downloadURL=" + downloadURL + ", importPriority="
+				+ importPriority + ", lastImportation=" + lastImportation + ", lastStandardisation="
+				+ lastStandardisation + ", partnerId=" + tblPartners + ", startTime=" + startTime + ", timePeriod="
+				+ timePeriod + ", tblpfmappings=" + tblpfmappings + ", tblpfproducts=" + tblpfproducts
+				+ ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
+				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs;
 	}
 }

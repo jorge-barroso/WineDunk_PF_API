@@ -754,7 +754,7 @@ public class ProductsProcessRunnable implements Callable<Integer> {
     					.setPartnerDestinationUrl(productStandard.getClicktag())
     					.setPartnerId(productStandard.getTblpf().getTblPartners())
     					.setPartnerMerchantDeliveringCost(productStandard.getDeliveryCost())
-    					//.setPartnerMerchantId(productStandard.getPartnerMerchantId())
+    					.setPartnerMerchantId(productStandard.getPartnerMerchantId())
     					.setPartnerMerchantProductId(productStandard.getMerchantProductId())
     					.setPartnerMerchantStock(null)
     					.setPartnerProductId(productStandard.getPartnerProductId())
