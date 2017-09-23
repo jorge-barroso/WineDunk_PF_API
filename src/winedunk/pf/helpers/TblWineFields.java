@@ -14,7 +14,8 @@ public enum TblWineFields {
 	ABV("abv"),
 	DESCRIPTION("defaultDescription"),
 	GTIN("gtin"),
-	WINE_TYPE("wineType");
+	WINE_TYPE("wineType"),
+	WINE_GRAPEVARIETY("grapeVariety");
 	
 	private final String selectedField;
 

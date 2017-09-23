@@ -9,12 +9,17 @@
 <c:import url="generics/header.jsp"/>
 </head>
 <body>
+	<div id=pfFormId>
+		<form id="pfForm" onSubmit="submit()">
+			
+		</form>
+	</div>
 	<c:import url="generics/body.jsp"/>
 	<table>
 		<c:forEach items="${productFeeds}" var="productFeed">
 			<tr>
 				<td>
-					<c:out value="${productFeed.partnerId}"/>
+					<c:out value="${productFeed.tblPartners.name}"/>
 				</td>
 				<td>
 					
@@ -22,5 +27,6 @@
 			</tr>
 		</c:forEach>
 	</table>
+	
 </body>
 </html>

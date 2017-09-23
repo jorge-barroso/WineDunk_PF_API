@@ -7,15 +7,23 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 
 @Entity
 @Table(name = "tblPartners")
+@NamedQueries({
+	@NamedQuery(name="tblPartners.findAll", query="SELECT p FROM tblPartners p"),
+})
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class tblPartners {
 
     @Transient
@@ -32,7 +40,7 @@ public class tblPartners {
     public void setName(String name) { this.name = name; }
 
     @Column(name= "deleted")
-    private Boolean deleted;
+    private Boolean deleted = false;
     public Boolean isDeleted() { return deleted; }
     public void setDeleted(Boolean deleted) { this.deleted = deleted; }
     
@@ -54,8 +62,7 @@ public class tblPartners {
 	public List<tblClicks> getClicks() { return clicks; }
 	public void setClicks(List<tblClicks> clicks) { this.clicks = clicks; }
 
-	@OneToMany(mappedBy = "tblPartners", targetEntity = Tblpf.class)
-	@JsonBackReference("partners_productfeeds")
+	@OneToMany(mappedBy = "partnerId", targetEntity = Tblpf.class)
 	private List<Tblpf> tblPfs;
 	public List<Tblpf> getTblpfs() { return tblPfs; }
 	public void setTblpfs(List<Tblpf> tblPfs) { this.tblPfs = tblPfs; }
@@ -67,14 +74,13 @@ public class tblPartners {
         this.name = null;
         this.deleted = null;
         this.partnerTypeId = null;
-        
     }
     public tblPartners(String name) { this.name = name; }
-    
 	@Override
 	public String toString() {
-		return "tblPartners [id=" + id + ", name=" + name + ", deleted=" + deleted + "]";
+		return "tblPartners [id=" + id + ", name=" + name + ", deleted=" + deleted + ", partnerTypeId=" + partnerTypeId + "]";
 	}
+
     
 }
  

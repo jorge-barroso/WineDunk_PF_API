@@ -1,19 +1,32 @@
 package winedunk.pf.models;
 
 import java.io.Serializable;
-import javax.persistence.*;
 import java.util.List;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 
 /**
  * The persistent class for the tblpfstatus database table.
  * 
  */
-@Entity
+@Entity()
+@Table(name="tblPFStatus")
 @NamedQueries(value = {
 		@NamedQuery(name="Tblpfstatus.findAll", query="SELECT t FROM Tblpfstatus t"),
 		@NamedQuery(name="Tblpfstatus.findByName", query="SELECT t FROM Tblpfstatus t WHERE t.name = :name")
 })
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Tblpfstatus implements Serializable {
 	private static final long serialVersionUID = 1L;
 
@@ -24,19 +37,19 @@ public class Tblpfstatus implements Serializable {
 	private String name;
 
 	//bi-directional many-to-one association to Tblpf
-	@OneToMany(mappedBy="latestStatus")
+	@OneToMany(mappedBy="latestStatus", targetEntity=Tblpf.class)
 	private List<Tblpf> latestStatusList;
 
 	//bi-directional many-to-one association to Tblpf
-	@OneToMany(mappedBy="standardisationStatus")
+	@OneToMany(mappedBy="standardisationStatus", targetEntity=Tblpf.class)
 	private List<Tblpf> standardisationStatusList;
 
 	//bi-directional many-to-one association to Tblpf
-	@OneToMany(mappedBy="importationStatus")
+	@OneToMany(mappedBy="importationStatus", targetEntity=Tblpf.class)
 	private List<Tblpf> importationStatusList;
 
 	//bi-directional many-to-one association to Tblpfstatuschangelog
-	@OneToMany(mappedBy="tblpfstatus")
+	@OneToMany(mappedBy="tblpfstatus", targetEntity=Tblpfstatuschangelog.class)
 	private List<Tblpfstatuschangelog> tblpfstatuschangelogs;
 
 	public Tblpfstatus() {
@@ -145,5 +158,11 @@ public class Tblpfstatus implements Serializable {
 
 		return tblpfstatuschangelog;
 	}
+
+	@Override
+	public String toString() {
+		return "Tblpfstatus [id=" + id + ", name=" + name + "]";
+	}
+
 
 }

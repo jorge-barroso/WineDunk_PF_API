@@ -5,11 +5,15 @@ import java.lang.Integer;
 import java.lang.String;
 import javax.persistence.*;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
 /**
  * Entity implementation class for Entity: TblPFCountryNameMappingTable
  *
  */
 @Entity
+@Table(name="tblPFCountryNameMappingTable")
 @NamedQueries({
 	@NamedQuery(name="TblPFCountryNameMappingTable.findAll", query="SELECT t FROM TblPFCountryNameMappingTable t"),
 	@NamedQuery(name="TblPFCountryNameMappingTable.findByCountry", query="SELECT t FROM TblPFCountryNameMappingTable t WHERE t.tblCountries = :country"),
@@ -21,6 +25,7 @@ import javax.persistence.*;
 	@NamedQuery(name="TblPFCountryNameMappingTable.findByCountryAndMerchantNameInsensitive", query="SELECT t FROM TblPFCountryNameMappingTable t WHERE t.tblCountries = :country AND LOWER(t.merchantCountryName) = LOWER(:name)"),
 	@NamedQuery(name="TblPFCountryNameMappingTable.findByCountryIdAndMerchantNameInsensitive", query="SELECT t FROM TblPFCountryNameMappingTable t WHERE t.tblCountries.id = :id AND LOWER(t.merchantCountryName) = LOWER(:name)")
 })
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class TblPFCountryNameMappingTable implements Serializable {
 	private static final long serialVersionUID = 1L;
 	   

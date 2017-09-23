@@ -1,13 +1,14 @@
 package winedunk.pf.helpers;
 
 public enum NoDataFieldsValues {
-	NO_COUNTRY("No country"),
-	NO_REGION("No region"),
-	NO_APPELLATION("No appellation"),
-	NO_WINERY("No winery"),
-	NO_COLOUR("No colour"),
-	NO_CLOSURE("No closure"),
-	NO_VARIETY("No variety");
+	NO_COUNTRY("No Country"),
+	NO_REGION("No Region"),
+	NO_APPELLATION("No Appellation"),
+	NO_WINERY("No Winery"),
+	NO_COLOUR("No Colour"),
+	NO_CLOSURE("No Closure"),
+	NO_VARIETY("No Variety"),
+	NO_WINETYPE("No WineType");
 
 	private final String selectedField;
 

@@ -1,79 +1,43 @@
 package winedunk.pf.models;
 
 import java.io.Serializable;
-import javax.persistence.*;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.List;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedQuery;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 /**
  * The persistent class for the tblpfs database table.
  * 
  */
 @Entity
-@Table(name="tblpfs")
-@NamedQuery(name="Tblpf.findAll", query="SELECT t FROM Tblpf t")
+@Table(name = "tblPFs")
+@NamedQuery(name = "Tblpf.findAll", query = "SELECT t FROM Tblpf t")
+@JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
 public class Tblpf implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
-	private Integer id;
-
-	private String description;
-
-	private String downloadURL;
-
-	private Integer importPriority;
-
-	private Timestamp lastImportation;
-
-	private Timestamp lastStandardisation;
-
-	@ManyToOne
-	@JoinColumn(name = "partnerId")
-	private tblPartners tblPartners;
-
-	private Time startTime;
-
-	private String timePeriod;
-
-	//bi-directional many-to-one association to Tblpfmapping
-	@OneToMany(mappedBy="tblpf")
-	private List<Tblpfmapping> tblpfmappings;
-
-	//bi-directional many-to-one association to Tblpfproduct
-	@OneToMany(mappedBy="tblpf")
-	private List<Tblpfproduct> tblpfproducts;
-
-	//bi-directional many-to-one association to Tblpfstatus
-	@ManyToOne
-	@JoinColumn(name="latestStatus")
-	private Tblpfstatus latestStatus;
-
-	//bi-directional many-to-one association to Tblpfstatus
-	@ManyToOne
-	@JoinColumn(name="standardisationStatus")
-	private Tblpfstatus standardisationStatus;
-
-	//bi-directional many-to-one association to Tblpfstatus
-	@ManyToOne
-	@JoinColumn(name="importationStatus")
-	private Tblpfstatus importationStatus;
-
-	//bi-directional many-to-one association to Tblpfstatuschangelog
-	@OneToMany(mappedBy="tblpf")
-	private List<Tblpfstatuschangelog> tblpfstatuschangelogs;
-
-	private Boolean isZip;
-	
-	private Boolean hasHeader;
-	
-	private String separator;
-
 	public Tblpf() {
 	}
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer id;
 
 	public Integer getId() {
 		return this.id;
@@ -83,76 +47,112 @@ public class Tblpf implements Serializable {
 		this.id = id;
 	}
 
+	@Column(nullable = false)
+	private String description;
+
 	public String getDescription() {
 		return this.description;
 	}
 
-	public void setDescription(String description) {
+	public Tblpf setDescription(String description) {
 		this.description = description;
+		return this;
 	}
+
+	@Column(nullable = false)
+	private String downloadURL;
 
 	public String getDownloadURL() {
 		return this.downloadURL;
 	}
 
-	public void setDownloadURL(String downloadURL) {
+	public Tblpf setDownloadURL(String downloadURL) {
 		this.downloadURL = downloadURL;
+		return this;
 	}
+
+	@Column(nullable = false)
+	private Integer importPriority;
 
 	public Integer getImportPriority() {
 		return this.importPriority;
 	}
 
-	public void setImportPriority(Integer importPriority) {
+	public Tblpf setImportPriority(Integer importPriority) {
 		this.importPriority = importPriority;
+		return this;
 	}
+
+	private Timestamp lastImportation;
 
 	public Timestamp getLastImportation() {
 		return this.lastImportation;
 	}
 
-	public void setLastImportation(Timestamp lastImportation) {
+	public Tblpf setLastImportation(Timestamp lastImportation) {
 		this.lastImportation = lastImportation;
+		return this;
 	}
+
+	private Timestamp lastStandardisation;
 
 	public Timestamp getLastStandardisation() {
 		return this.lastStandardisation;
 	}
 
-	public void setLastStandardisation(Timestamp lastStandardisation) {
+	public Tblpf setLastStandardisation(Timestamp lastStandardisation) {
 		this.lastStandardisation = lastStandardisation;
+		return this;
 	}
 
-	public tblPartners getTblPartners() {
-		return this.tblPartners;
+	@ManyToOne
+	@JoinColumn(name = "partnerId")
+	@JsonInclude(Include.NON_NULL)
+	private tblPartners partnerId;
+
+	public tblPartners getPartnerId() {
+		return this.partnerId;
 	}
 
-	public void setTblPartners(tblPartners tblPartners) {
-		this.tblPartners = tblPartners;
+	public Tblpf setPartnerId(tblPartners partnerId) {
+		this.partnerId = partnerId;
+		return this;
 	}
+
+	private Time startTime;
 
 	public Time getStartTime() {
 		return this.startTime;
 	}
 
-	public void setStartTime(Time startTime) {
+	public Tblpf setStartTime(Time startTime) {
 		this.startTime = startTime;
+		return this;
 	}
+
+	@Column(nullable = false)
+	private String timePeriod;
 
 	public String getTimePeriod() {
 		return this.timePeriod;
 	}
 
-	public void setTimePeriod(String timePeriod) {
+	public Tblpf setTimePeriod(String timePeriod) {
 		this.timePeriod = timePeriod;
+		return this;
 	}
+
+	// bi-directional many-to-one association to Tblpfmapping
+	@OneToMany(mappedBy = "tblpf")
+	private List<Tblpfmapping> tblpfmappings;
 
 	public List<Tblpfmapping> getTblpfmappings() {
 		return this.tblpfmappings;
 	}
 
-	public void setTblpfmappings(List<Tblpfmapping> tblpfmappings) {
+	public Tblpf setTblpfmappings(List<Tblpfmapping> tblpfmappings) {
 		this.tblpfmappings = tblpfmappings;
+		return this;
 	}
 
 	public Tblpfmapping addTblpfmapping(Tblpfmapping tblpfmapping) {
@@ -168,6 +168,10 @@ public class Tblpf implements Serializable {
 
 		return tblpfmapping;
 	}
+
+	// bi-directional many-to-one association to Tblpfproduct
+	@OneToMany(mappedBy = "tblpf", targetEntity = Tblpfproduct.class)
+	private List<Tblpfproduct> tblpfproducts;
 
 	public List<Tblpfproduct> getTblpfproducts() {
 		return this.tblpfproducts;
@@ -191,29 +195,54 @@ public class Tblpf implements Serializable {
 		return tblpfproduct;
 	}
 
+	// bi-directional many-to-one association to Tblpfstatus
+	@ManyToOne
+	@JoinColumn(name = "latestStatus")
+	@JsonInclude(Include.NON_NULL)
+	private Tblpfstatus latestStatus;
+
 	public Tblpfstatus getLatestStatus() {
 		return this.latestStatus;
 	}
 
-	public void setLatestStatus(Tblpfstatus latestStatus) {
+	public Tblpf setLatestStatus(Tblpfstatus latestStatus) {
 		this.latestStatus = latestStatus;
+		return this;
 	}
+
+	// bi-directional many-to-one association to Tblpfstatus
+	@ManyToOne
+	@JoinColumn(name = "standardisationStatus")
+	@JsonInclude(Include.NON_NULL)
+	private Tblpfstatus standardisationStatus;
 
 	public Tblpfstatus getStandardisationStatus() {
 		return this.standardisationStatus;
 	}
 
-	public void setStandardisationStatus(Tblpfstatus standardisationStatus) {
+	public Tblpf setStandardisationStatus(Tblpfstatus standardisationStatus) {
 		this.standardisationStatus = standardisationStatus;
+		return this;
 	}
+
+	// bi-directional many-to-one association to Tblpfstatus
+	@ManyToOne
+	@JoinColumn(name = "importationStatus")
+	@JsonInclude(Include.NON_NULL)
+	private Tblpfstatus importationStatus;
 
 	public Tblpfstatus getImportationStatus() {
 		return this.importationStatus;
 	}
 
-	public void setImportationStatus(Tblpfstatus importationStatus) {
+	public Tblpf setImportationStatus(Tblpfstatus importationStatus) {
 		this.importationStatus = importationStatus;
+		return this;
 	}
+
+	// bi-directional many-to-one association to Tblpfstatuschangelog
+	@OneToMany(mappedBy = "tblpf", targetEntity = Tblpfstatuschangelog.class)
+	private List<Tblpfstatuschangelog> tblpfstatuschangelogs;
 
 	public List<Tblpfstatuschangelog> getTblpfstatuschangelogs() {
 		return this.tblpfstatuschangelogs;
@@ -237,6 +266,9 @@ public class Tblpf implements Serializable {
 		return tblpfstatuschangelog;
 	}
 
+	@Column(nullable = false)
+	private Boolean isZip;
+
 	public Boolean getIsZip() {
 		return isZip;
 	}
@@ -245,6 +277,9 @@ public class Tblpf implements Serializable {
 		this.isZip = isZip;
 	}
 
+	@Column(nullable = false)
+	private Boolean hasHeader;
+
 	public Boolean getHasHeader() {
 		return hasHeader;
 	}
@@ -252,6 +287,10 @@ public class Tblpf implements Serializable {
 	public void setHasHeader(Boolean hasHeader) {
 		this.hasHeader = hasHeader;
 	}
+
+	// force back ticks as "separator" is a reserved word by MySQL
+	@Column(name = "`separator`", nullable = false)
+	private String separator;
 
 	public String getSeparator() {
 		return separator;
@@ -265,19 +304,9 @@ public class Tblpf implements Serializable {
 	public String toString() {
 		return "Tblpf [id=" + id + ", description=" + description + ", downloadURL=" + downloadURL + ", importPriority="
 				+ importPriority + ", lastImportation=" + lastImportation + ", lastStandardisation="
-				+ lastStandardisation + ", partnerId=" + tblPartners + ", startTime=" + startTime + ", timePeriod="
-				+ timePeriod + ", tblpfmappings=" + tblpfmappings + ", tblpfproducts=" + tblpfproducts
-				+ ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
-				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs
-				+ ", isZip=" + isZip + ", hasHeader=" + hasHeader + ", separator=" + separator + "]";
-	}
-
-	public String toBodyRequest() {
-		return "id=" + id + ", description=" + description + ", downloadURL=" + downloadURL + ", importPriority="
-				+ importPriority + ", lastImportation=" + lastImportation + ", lastStandardisation="
-				+ lastStandardisation + ", partnerId=" + tblPartners + ", startTime=" + startTime + ", timePeriod="
-				+ timePeriod + ", tblpfmappings=" + tblpfmappings + ", tblpfproducts=" + tblpfproducts
-				+ ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
-				+ ", importationStatus=" + importationStatus + ", tblpfstatuschangelogs=" + tblpfstatuschangelogs;
+				+ lastStandardisation + ", partnerId=" + partnerId + ", startTime=" + startTime + ", timePeriod="
+				+ timePeriod + ", latestStatus=" + latestStatus + ", standardisationStatus=" + standardisationStatus
+				+ ", importationStatus=" + importationStatus + ", isZip=" + isZip + ", hasHeader=" + hasHeader
+				+ ", separator=" + separator + "]";
 	}
 }

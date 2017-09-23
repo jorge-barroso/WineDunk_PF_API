@@ -5,14 +5,23 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 @Entity
 @Table(name = "tblShops")
+@NamedQueries({
+	@NamedQuery(name="tblShops.findAll", query="SELECT t FROM tblShops t"),
+	@NamedQuery(name="tblShops.findByName", query="SELECT t FROM tblShops t WHERE t.name = :name")
+})
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class tblShops {
 	
 	@Transient
@@ -66,6 +75,11 @@ public class tblShops {
 	public List<tblWinesbyMerchants> getWinesByMerchant() { return winesByMerchant; }
 	public void setWinesByMerchant(List<tblWinesbyMerchants> winesByMerchant) { this.winesByMerchant = winesByMerchant; }
 	
+	@OneToMany(mappedBy="tblShops", targetEntity = Tblpfmerchanthtmlparsing.class)
+	private List<Tblpfmerchanthtmlparsing> parsingByMerchant;
+	public List<Tblpfmerchanthtmlparsing> getTblpfmerchanthtmlparsing() { return parsingByMerchant; }
+	public void setTblpfmerchanthtmlparsing(List<Tblpfmerchanthtmlparsing> parsingByMerchant) { this.parsingByMerchant = parsingByMerchant; }
+
 	public tblShops(Integer id) { this.id = id; }
 	public tblShops(String name) { this.name = name; }
 	public tblShops()

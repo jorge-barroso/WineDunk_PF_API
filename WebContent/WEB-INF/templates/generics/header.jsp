@@ -12,7 +12,4 @@
 	<!-- Latest compiled and minified JavaScript -->
 	<script src="styling/js/bootstrap.js"></script>
 </head>
-<body>
-
-</body>
 </html>

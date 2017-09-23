@@ -14,15 +14,14 @@ public class RequestsCreator extends EncodeURL {
 		//Create request
 		String fullURL = urlPath + relURL;
 		fullURL.replace(" ", "+");
-		System.out.println("Full URL: " + fullURL);  //TODO DELETE
 		URL url = new URL(fullURL);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
-		
+
 		//add request header
 		con.setRequestMethod("POST");
-		con.setRequestProperty("User-Agent", "Mozilla/5.0");
+		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
 		con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-		con.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+		con.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
 
 
 		// Send post request
@@ -30,7 +29,7 @@ public class RequestsCreator extends EncodeURL {
 		con.setDoOutput(true);
 
 	    DataOutputStream os = new DataOutputStream(con.getOutputStream());
-	    os.writeBytes(content);
+	    os.write(content.getBytes("UTF-8"));
 	    os.close();
 		
 		
@@ -40,6 +39,7 @@ public class RequestsCreator extends EncodeURL {
 		StringBuffer responseBuffer = new StringBuffer();
 
 		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
+
 		in.close();
 		
 		return responseBuffer.toString();
@@ -49,15 +49,14 @@ public class RequestsCreator extends EncodeURL {
 	{
 		//Create request
 		url = url.replaceAll(" ", "+");
-		System.out.println("Full URL: " + url);  //TODO DELETE
 		URL obj = new URL(url);
 		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 				
 		//add request header
 		con.setRequestMethod("GET");
-		con.setRequestProperty("User-Agent", "Mozilla/5.0");
+		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
 		con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-		con.setRequestProperty("Content-Type", "text/plain");
+		con.setRequestProperty("Content-Type", "text/plain;charset=UTF-8");
 		
 		//Get result
 		BufferedReader in = new BufferedReader(

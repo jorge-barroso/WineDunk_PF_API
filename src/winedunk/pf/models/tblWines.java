@@ -4,10 +4,10 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.JoinTable;
-import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
@@ -17,18 +17,22 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 @Entity
 @Table(name = "tblWines")
 @NamedQueries({ @NamedQuery(name = "tblWines.FindByGtin", query = "SELECT t FROM tblWines t WHERE t.gtin = :gtin"),
 		@NamedQuery(name = "tblWines.FindByNameBottleAndVintage", query = "SELECT t FROM tblWines t "
 				+ "WHERE t.name = :name " + "AND t.bottleSize = :bottleSize " + "AND t.vintage = :vintage") })
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class tblWines {
 
 	@Transient
 	private static final long serialVersionUID = 1L;
 
 	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Integer id;
 
 	public Integer getId() {
@@ -93,6 +97,7 @@ public class tblWines {
 	}
 
 	@OneToMany(mappedBy = "tblWines", targetEntity=TblWinesWineType.class)
+	@JsonBackReference
 	private List<TblWinesWineType> tblWinesWineType;
 	public List<TblWinesWineType> getTblWinesWineType() {
 		return tblWinesWineType;
@@ -128,16 +133,15 @@ public class tblWines {
 		return this;
 	}
 
-	@ManyToMany
-	@JoinTable(name = "tblWinesGrapeVarieties", joinColumns = @JoinColumn(name = "wineId"), inverseJoinColumns = @JoinColumn(name = "grapeVarietyId"))
-	private List<tblGrapeVarieties> grapeVarieties;
+	@OneToMany(mappedBy="wine", targetEntity=TblWinesGrapeVariety.class)
+	private List<TblWinesGrapeVariety> tblWinesGrapeVariety;
 
-	public List<tblGrapeVarieties> getGrapeVarieties() {
-		return grapeVarieties;
+	public List<TblWinesGrapeVariety> getTblWinesGrapeVariety() {
+		return tblWinesGrapeVariety;
 	}
 
-	public void setGrapeVarieties(List<tblGrapeVarieties> grapeVarieties) {
-		this.grapeVarieties = grapeVarieties;
+	public void setTblWinesGrapeVariety(List<TblWinesGrapeVariety> tblWinesGrapeVariety) {
+		this.tblWinesGrapeVariety = tblWinesGrapeVariety;
 	}
 
 	@Column(name = "name", nullable = false)
@@ -347,55 +351,65 @@ public class tblWines {
 	}
 
 	@OneToMany(mappedBy = "wineId", targetEntity = tblRecommendedWines.class)
-	@JsonBackReference("RecommendedWines")
-	private List<tblRecommendedWines> recommendedWines;
+    @JsonBackReference("RecommendedWines")
+    private List<tblRecommendedWines> recommendedWines;
+    public List<tblRecommendedWines> getRecommendedWines() { return recommendedWines; }
+    public void setRecommendedWines(List<tblRecommendedWines> recommendedWines) { this.recommendedWines = recommendedWines; }
+    
+    @OneToMany(mappedBy = "wineId", targetEntity = tblWinesbyMerchants.class)
+    @JsonBackReference("wine_winesByMerchant")
+    private List<tblWinesbyMerchants> winesByMerchant;
+	public List<tblWinesbyMerchants> getWinesByMerchant() { return winesByMerchant; }
+	public void setWinesByMerchant(List<tblWinesbyMerchants> winesByMerchant) { this.winesByMerchant = winesByMerchant; }
+	
+	@OneToMany(mappedBy = "wineId", targetEntity = tblBestOffersbyType.class)
+	@JsonBackReference("wine_bestOffersByType")
+	private List<tblBestOffersbyType> bestOffersByType;
+	public List<tblBestOffersbyType> getBestOffersByType() { return bestOffersByType; }
+	public void setBestOffersByType(List<tblBestOffersbyType> bestOffersByType) { this.bestOffersByType = bestOffersByType; }
 
-	public List<tblRecommendedWines> getRecommendedWines() {
-		return recommendedWines;
-	}
+	@Column(name = "avgRating")
+	private Float avgRating;
+	public Float getAvgRating() { return avgRating; }
+	public void setAvgRating(Float avgRating) { this.avgRating = avgRating; }
+	
+    public tblWines(Integer id) { this.id = id; }
+    public tblWines()
+    {
+        this.id = null;
+        this.country = null;
+        this.name = null;
+        this.defaultDescription = null;
+        this.bottleSize = null;
+        this.abv = null;
+        this.gtin = null;
+        this.imageURL = null;
+        this.deleted = false;
+        this.favouriteWines = null;
+        this.recommendedWines = null;
+        this.reviews = null;
+        this.winesViewed = null;
+        this.clicks = null;
+        this.minimumPrice = null;
+        this.minimumPriceShopId = null;
+        this.userPriceAlerts = null;
+        this.winesByMerchant = null;
+        this.bestOffersByType = null;
+        this.avgRating = null;
+    }
+    public tblWines(String name) { this.name = name; }
 
-	public void setRecommendedWines(List<tblRecommendedWines> recommendedWines) {
-		this.recommendedWines = recommendedWines;
-	}
-
-	@OneToMany(mappedBy = "wineId", targetEntity = tblWinesbyMerchants.class)
-	@JsonBackReference("wine_winesByMerchant")
-	private List<tblWinesbyMerchants> winesByMerchant;
-
-	public List<tblWinesbyMerchants> getWinesByMerchant() {
-		return winesByMerchant;
-	}
-
-	public void setWinesByMerchant(List<tblWinesbyMerchants> winesByMerchant) {
-		this.winesByMerchant = winesByMerchant;
-	}
-
-	public tblWines(Integer id) {
-		this.id = id;
-	}
-
-	public tblWines() {
-		this.id = null;
-		this.country = null;
-		this.name = null;
-		this.defaultDescription = null;
-		this.bottleSize = null;
-		this.abv = null;
-		this.gtin = null;
-		this.imageURL = null;
-		this.deleted = false;
-		this.favouriteWines = null;
-		this.recommendedWines = null;
-		this.reviews = null;
-		this.winesViewed = null;
-		this.clicks = null;
-		this.minimumPrice = null;
-		this.minimumPriceShopId = null;
-		this.userPriceAlerts = null;
-		this.winesByMerchant = null;
-	}
-
-	public tblWines(String name) {
-		this.name = name;
+	@Override
+	public String toString() {
+		return "tblWines [id=" + id + ", country=" + country + ", region=" + region + ", appellation=" + appellation
+				+ ", colour=" + colour + ", tblWinesWineType=" + tblWinesWineType + ", winery=" + winery + ", closure="
+				+ closure + ", tblWinesGrapeVariety=" + tblWinesGrapeVariety + ", name=" + name
+				+ ", defaultDescription=" + defaultDescription + ", shortDescription=" + shortDescription
+				+ ", bottleSize=" + bottleSize + ", vintage=" + vintage + ", abv=" + abv + ", imageURL=" + imageURL
+				+ ", gtin=" + gtin + ", minimumPrice=" + minimumPrice + ", minimumPriceShopId=" + minimumPriceShopId
+				+ ", deleted=" + deleted + ", favouriteWines=" + favouriteWines + ", wineRatings=" + wineRatings
+				+ ", reviews=" + reviews + ", winesViewed=" + winesViewed + ", clicks=" + clicks + ", userPriceAlerts="
+				+ userPriceAlerts + ", recommendedWines=" + recommendedWines + ", winesByMerchant=" + winesByMerchant
+				+ ", bestOffersByType=" + bestOffersByType + ", avgRating=" + avgRating + "]";
 	}
 }

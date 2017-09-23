@@ -2,19 +2,12 @@ package winedunk.pf.services;
 
 import java.io.IOException;
 
-import javax.ejb.LocalBean;
-import javax.ejb.Stateful;
-
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import winedunk.pf.models.tblPartnersProducts;
 
-/**
- * Session Bean implementation class PartnersProductsService
- */
-@Stateful
-@LocalBean
 public class PartnersProductsService {
 
 	private final RequestsCreator requestsCreator;
@@ -22,19 +15,13 @@ public class PartnersProductsService {
     private final String servletUrl;
     String apiUrl;
 
-    public PartnersProductsService() {
+    public PartnersProductsService(String apiUrl) {
     	this.requestsCreator = new RequestsCreator();
         this.mapper = new ObjectMapper();
         this.servletUrl = "partnersProductss";
-    }
+        this.apiUrl = apiUrl;
 
-    /**
-     * 
-     * @param apiUrl
-     */
-    public void setApiUrl(String apiUrl)
-    {
-    	this.apiUrl = apiUrl;
+        this.mapper.setSerializationInclusion(Include.NON_NULL);
     }
 
     /**
@@ -45,10 +32,10 @@ public class PartnersProductsService {
      * @throws JsonProcessingException
      * @throws IOException
      */
-    public Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
+    public synchronized Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
     {
-    	String response = requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", mapper.writeValueAsString(product));
-    	return response.isEmpty() ? null : Integer.valueOf(response);
+    	String response = this.requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product));
+    	return Integer.parseInt(response);
     }
 
     /**
@@ -58,7 +45,7 @@ public class PartnersProductsService {
      * @throws JsonProcessingException
      * @throws IOException
      */
-    public Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
+    public synchronized Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
     {
     	String response = requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", mapper.writeValueAsString(product));
     	return Boolean.valueOf(response);
@@ -72,16 +59,17 @@ public class PartnersProductsService {
      * @throws InterruptedException
      * @throws IOException 
      */
-    public tblPartnersProducts getInstance(String apiUrl, String partnerProductId, String merchantProductId) throws IOException
+    public tblPartnersProducts getProduct(String partnerProductId, String merchantProductId) throws IOException
     {
-    	this.setApiUrl(apiUrl);
-
     	//get possibly existing product
-    	String requestParameters = "partnerProductId="+partnerProductId
- 		 						 + "&merchanProductId="+merchantProductId;
+    	String requestParameters = "{ \"partnerProductId\" : "+partnerProductId+", "
+ 		 						 + "\"merchanProductId\" : "+merchantProductId+" }";
     	
     	String productString = requestsCreator.createPostRequest(apiUrl, "partnersProductss?action=getByPartnerProductIdAndMerchantProductId", requestParameters);
     	
+    	if(productString.isEmpty())
+    		return new tblPartnersProducts();
+
     	return this.mapper.readValue(productString, tblPartnersProducts.class);
 	}
 }

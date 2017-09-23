@@ -1,7 +1,20 @@
 package winedunk.pf.models;
 
 import java.io.Serializable;
-import javax.persistence.*;
+
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.Lob;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Table;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 
 /**
@@ -9,21 +22,21 @@ import javax.persistence.*;
  * 
  */
 @Entity
-@Table(name="tblpfproducts")
+@Table(name="tblPFProducts")
 @NamedQueries({
 	@NamedQuery(name="Tblpfproduct.findAll", query="SELECT t FROM Tblpfproduct t ORDER BY t.merchantName"),
-	@NamedQuery(name="Tblpfproduct.findByTblpf", query="SELECT t FROM Tblpfproduct t WHERE t.tblpf = :tblpf ORDER BY t.merchantName"),
+	@NamedQuery(name="Tblpfproduct.findByTblpfId", query="SELECT t FROM Tblpfproduct t WHERE t.tblpf.id = :id ORDER BY t.merchantName"),
 	@NamedQuery(name="Tblpfproduct.findByPartnerIdAndMerchantId", query="SELECT t FROM Tblpfproduct t "
 																	  + "WHERE t.merchantProductId = :merchantProductId "
 																	  	+ "AND t.partnerProductId = :partnerProductId "
 																	  + "ORDER BY t.merchantName")
 })
-
+@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Tblpfproduct implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@Id
-	@GeneratedValue(strategy=GenerationType.IDENTITY)
+	@GeneratedValue(strategy=GenerationType.AUTO)
 	private Integer id;
 
 	private String clicktag;
@@ -169,6 +182,15 @@ public class Tblpfproduct implements Serializable {
 
 	public void setPartnerMerchantId(String partnerMerchantId) {
 		this.partnerMerchantId = partnerMerchantId;
+	}
+
+	@Override
+	public String toString() {
+		return "Tblpfproduct [id=" + id + ", clicktag=" + clicktag + ", deliveryCost=" + deliveryCost + ", imageURL="
+				+ imageURL + ", merchantName=" + merchantName + ", merchantProductId=" + merchantProductId + ", name="
+				+ name + ", partnerMerchantId=" + partnerMerchantId + ", partnerProductDescription="
+				+ partnerProductDescription + ", partnerProductId=" + partnerProductId + ", price=" + price
+				+ ", productType=" + productType + ", productURL=" + productURL + ", tblpf=" + tblpf + "]";
 	}
 
 }

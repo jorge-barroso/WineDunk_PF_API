@@ -12,7 +12,8 @@
     </div>
     <ul class="nav navbar-nav ">
       <li class="a-withBackground"><a href="/">Home</a></li>
-      <li class="a-withBackground"><a href="/">New Product Feed</a></li>
+      <li id="newPf" class="a-withBackground"><a href="#">New Product Feed</a></li>
+      <li id="newCountryName" class="a-withBackground"><a href="#">New Country Name Filter</a></li>
     </ul>
     <ul class="nav navbar-nav navbar-right">
       <c:choose>

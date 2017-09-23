@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
@@ -18,9 +18,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import winedunk.pf.models.Tblpf;
+import winedunk.pf.models.tblPartners;
+import winedunk.pf.services.RequestsCreator;
 
 
 /**
@@ -44,44 +47,24 @@ public class MainInterface extends HttpServlet {
 			return;
 		}
 		
-		if(request.getSession().getAttribute("userLoggedIn")==null)
+		/**if(request.getSession().getAttribute("userLoggedIn")==null)
 		{
 			String sourceUrl = URLEncoder.encode(properties.getProperty("rest.url")+request.getContextPath(), "UTF-8");
 			response.sendRedirect(properties.getProperty("rest.url")+"Login?source="+sourceUrl);
 			return;
-		}
+		}**/
+
+		RequestsCreator requestsCreator = new RequestsCreator();
+		ObjectMapper mapper = new ObjectMapper();
 
 		//Request full ProductFeeds list
-		URL url = new URL(properties.getProperty("crud.url")+"ProductFeeds");
-		HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-		connection.setRequestMethod("POST");
-	    connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-	    String parameters = "action=getAllProductFeeds";
-	    connection.setRequestProperty("Content-Length", Integer.toString(parameters.getBytes().length));
-	    connection.setRequestProperty("Content-Language", "en-GB");
-
-	    connection.setUseCaches(false);
-	    connection.setDoOutput(true);
-
-	    //open stream with the request's results
-	    DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
-	    outputStream.writeBytes(parameters);
-	    outputStream.close();
-
-	    //get and store JSON response
-	    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-	    StringBuffer stringBuffer = new StringBuffer();
-	    String line;
-	    while((line = reader.readLine()) != null)
-	    {
-	    	stringBuffer.append(line);
-	    }
-	    reader.close();
-
+		String productFeedsJson = requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getAllProductFeeds");
 	    //Map response to a List of Tblpf objects
-	    ObjectMapper mapper = new ObjectMapper();
-	    List<Tblpf> productFeeds = mapper.readValue(stringBuffer.toString(), mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
+	    List<Tblpf> productFeeds = productFeedsJson.isEmpty() ? new ArrayList<Tblpf>() : mapper.readValue(productFeedsJson, new TypeReference<List<Tblpf>>(){});
+
+	    String partnersListJson = requestsCreator.createGetRequest(properties.getProperty("crud.url"), "partners?action=getPartners");
+	    List<tblPartners> tblPartners = partnersListJson.isEmpty() ? new ArrayList<tblPartners>() : mapper.readValue(partnersListJson, new TypeReference<List<tblPartners>>(){});
+
 
 		//save for the JSTL template
 		request.getSession().setAttribute("productFeeds", productFeeds);
