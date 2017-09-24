@@ -1,15 +1,14 @@
 package winedunk.pf.services;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.text.WordUtils;
 import org.jsoup.Jsoup;
@@ -100,7 +99,10 @@ public class ProductsProcessRunnable {
     	Map<String, String> wineValues;
 		try {
 			List<Tblpfmerchanthtmlparsing> merchantParsing = this.getParsingInstructions(product.getMerchantName());
-			System.out.print(merchantParsing);
+
+			if(merchantParsing==null)
+				return;
+
 			if(merchantParsing.isEmpty())
 			{
 				System.out.println("No parsing for merchant "+product.getMerchantName());
@@ -304,54 +306,59 @@ public class ProductsProcessRunnable {
      */
     private List<Tblpfmerchanthtmlparsing> getParsingInstructions(String merchantName)
     {
-		tblShops merchant = this.getMerchant(merchantName);
+    	try {
+			tblShops merchant = this.getMerchant(merchantName);
+	
+			if(Thread.currentThread().isInterrupted())
+				return null;
+	
+			if(merchant==null)
+			{
+				System.out.println("Couldn't find merchant, so no parsing data can be provided");
+				Thread.currentThread().interrupt();
+				return null;
+			}
 
-		if(Thread.currentThread().isInterrupted())
-			return null;
-
-		if(merchant==null)
-		{
-			System.out.println("Couldn't find merchant, so no parsing data can be provided");
-			Thread.currentThread().interrupt();
-			return null;
-		}
-
-		//get parsing instructions by the merchant
-		String merchantParsingString;
-		try {
-			merchantParsingString = this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblPfMerchantsHTMLParsing?action=getByMerchant" , "{ \"id\" : "+merchant.getId()+" }");
-		} catch (IOException e) {
-			e.printStackTrace();
-			System.out.println("Couldn't reach CRUD destination while attempting to get the list of parsing instructions");
-			Thread.currentThread().interrupt();
-			return null;
-		}
-		
-		if(merchantParsingString.isEmpty())
-		{
-			System.out.println("Could find the merchant, but not the mapping! Skipping");
-			Thread.currentThread().interrupt();
-			return null;
-		}
-
-		try {
-			return this.mapper.readValue(merchantParsingString, new TypeReference<List<Tblpfmerchanthtmlparsing>>(){});
-		} catch (JsonParseException e) {
-			System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD doesn't seem to have a valid format");
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-			return null;
-		} catch (JsonMappingException e) {
-			System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD couldn't be mapped with a valid Tblpfmerchanthtmlparsing object");
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-			return null;
-		} catch (IOException e) {
-			System.out.println("While trying to get the merchant parsing instructions, a low level I/O exception occurred");
-			e.printStackTrace();
-			Thread.currentThread().interrupt();
-			return null;
-		}
+			//get parsing instructions by the merchant
+			String merchantParsingString;
+			try {
+				merchantParsingString = this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblPfMerchantsHTMLParsing?action=getByMerchant" , "{ \"id\" : "+merchant.getId()+" }");
+			} catch (IOException e) {
+				e.printStackTrace();
+				System.out.println("Couldn't reach CRUD destination while attempting to get the list of parsing instructions");
+				Thread.currentThread().interrupt();
+				return null;
+			}
+			
+			if(merchantParsingString.isEmpty())
+			{
+				System.out.println("Could find the merchant, but not the mapping! Skipping");
+				Thread.currentThread().interrupt();
+				return null;
+			}
+	
+			try {
+				return this.mapper.readValue(merchantParsingString, new TypeReference<List<Tblpfmerchanthtmlparsing>>(){});
+			} catch (JsonParseException e) {
+				System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD doesn't seem to have a valid format");
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+				return null;
+			} catch (JsonMappingException e) {
+				System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD couldn't be mapped with a valid Tblpfmerchanthtmlparsing object");
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+				return null;
+			} catch (IOException e) {
+				System.out.println("While trying to get the merchant parsing instructions, a low level I/O exception occurred");
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
+				return null;
+			}
+    	} catch(Exception e) {
+    		e.printStackTrace();
+    		return null;
+    	}
     }
 
     /**
@@ -1063,7 +1070,7 @@ public class ProductsProcessRunnable {
     	//get merchant
     	String merchantJson;
 		try {
-			merchantJson = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Merchants?action=getByName", "{ \"name\" : \""+StringEscapeUtils.unescapeHtml4(merchantName)+"\" }");
+			merchantJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "shops?action=getByName&name="+URLEncoder.encode(StringEscapeUtils.unescapeHtml4(merchantName), "UTF-8"));
 		} catch (IOException e) {
 			System.out.println("Couldn't reach the CRUD while trying to get the merchant by its name");
 			e.printStackTrace();

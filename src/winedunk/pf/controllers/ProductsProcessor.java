@@ -10,12 +10,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -70,7 +64,7 @@ public class ProductsProcessor extends HttpServlet {
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-				response.setStatus(HttpServletResponse.SC_ACCEPTED);
+		response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
 		//if there's something in the request body, we map it as Json, otherwise we just set the jsonnode as a new, empty one
 		byte[] requestBytes = new byte[20];

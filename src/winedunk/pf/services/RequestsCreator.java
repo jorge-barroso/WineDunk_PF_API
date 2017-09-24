@@ -14,6 +14,7 @@ public class RequestsCreator extends EncodeURL {
 		//Create request
 		String fullURL = urlPath + relURL;
 		fullURL.replace(" ", "+");
+		//System.out.println("Full URL: "+fullURL);
 		URL url = new URL(fullURL);
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
@@ -49,6 +50,7 @@ public class RequestsCreator extends EncodeURL {
 	{
 		//Create request
 		url = url.replaceAll(" ", "+");
+		//System.out.println("Full URL: "+url);
 		URL obj = new URL(url);
 		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 				
