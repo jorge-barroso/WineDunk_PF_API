@@ -66,4 +66,10 @@ public class tblRegions {
         this.wines = null;
         this.tblCountries = null;
     }
+
+    @Override
+	public String toString() {
+		return "tblRegions [id=" + id + ", name=" + name + ", deleted=" + deleted + ", wines=" + wines
+				+ ", appellations=" + appellations + ", tblCountries=" + tblCountries + "]";
+	}
 }

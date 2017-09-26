@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.text.StringEscapeUtils;
 import org.quartz.CronExpression;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -86,11 +87,13 @@ public class ProductFeedsPocessor extends HttpServlet {
      * 
      */
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {	
-        //if we have an id it's because it was called manually, so we quickly process it
+        response.setStatus(HttpServletResponse.SC_ACCEPTED);
+		//if we have an id it's because it was called manually, so we quickly process it
 		if(request.getParameter("id")!=null)
 		{
 			String pfJson = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById", "id="+request.getParameter("id"));
 			Tblpf pf = this.mapper.readValue(pfJson, Tblpf.class);
+
 			Thread t1 = new Thread(new Runnable() {
 
 				@Override
@@ -340,7 +343,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 								if(!finalValues[pfMapping.getDeliveryCostColumn()].trim().isEmpty())
 									product.setDeliveryCost(Float.valueOf(finalValues[pfMapping.getDeliveryCostColumn()]));
 								product.setImageURL(finalValues[pfMapping.getImageURLColumn()]);
-								product.setMerchantName(finalValues[pfMapping.getMerchantNameColumn()]);
+								product.setMerchantName(StringEscapeUtils.unescapeHtml4(finalValues[pfMapping.getMerchantNameColumn()]));
 								product.setMerchantProductId(finalValues[pfMapping.getMerchantProductIdColumn()]);
 								product.setName(finalValues[pfMapping.getNameColumn()]);
 								if(pfMapping.getPartnerMerchantId()!=null)

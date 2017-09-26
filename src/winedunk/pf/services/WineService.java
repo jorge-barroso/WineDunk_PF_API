@@ -37,8 +37,10 @@ public class WineService {
 	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
 	private final Map<String, String> countries = new HashMap<String, String>();
-	private final Pattern[] bottleSizePatterns = new Pattern[] {Pattern.compile("\\d+cl"), Pattern.compile("\\d+ml"), Pattern.compile("\\d+L"), Pattern.compile("\\d+\\s*Ltr")};
 	private final Pattern vintagePattern = Pattern.compile("[0-9]{4}");
+	private final Pattern[] bottleSizePatterns = new Pattern[] {Pattern.compile("(?i)\\d+(\\.\\d+)?cl\\s*(bottles|bottle)?"), Pattern.compile("(?i)\\d+(\\.\\d+)?ml\\s*(bottles|bottle)?"),  Pattern.compile("(?i)\\d+(\\.\\d+)?\\s*(ltr|lt|litre|l)\\s*(bottles|bottle)?")};
+	private final Pattern alcoholVolumePattern = Pattern.compile("(?i)\\s*(-|,)+?\\d+\\.?\\d*\\s*(abv|%\\s*)+\\s*(-|,)+?");
+	private Pattern merchantNamePattern;
 	private final Properties properties;
 	/**
 	 * 
@@ -85,7 +87,7 @@ public class WineService {
 			wine = this.mapper.readValue(this.requestsCreator.createGetRequest(this.apiUrl, "wines?"+requestParameters), tblWines.class);
 		}
 
-		return wine == null ? new tblWines() : wine;
+		return wine;
 	}
 
 	/**
@@ -96,6 +98,7 @@ public class WineService {
 	public tblCountries getCountry(String countryName)
 	{
 
+		System.out.println("Looking for country: "+countryName);
 		if(countryName.contains("Product of"));
 		countryName = countryName.replace("Product of ", "");
 
@@ -117,13 +120,14 @@ public class WineService {
 			return null;
 		}
 
+		//If the current wrong name was mapped to a proper name we replace that wrong name with the good one
 		if(countryNameMapping!=null)
 			countryName = countryNameMapping.getTblCountries().getName();
 
 		tblCountries country;
 		try {
 			String countryJson = this.requestsCreator.createGetRequest(this.apiUrl, "countries?action=getByName&name="+countryName);
-			country = countryJson.isEmpty() ? new tblCountries() : this.mapper.readValue(countryJson, tblCountries.class);
+			country = countryJson.isEmpty() ? null : this.mapper.readValue(countryJson, tblCountries.class);
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -145,17 +149,15 @@ public class WineService {
 			country = new tblCountries();
 			if(cc==null)
 			{
-				if(countryName.equals(NoDataFieldsValues.NO_COUNTRY.toString() ))
-				{
-					country.setName(countryName)
-					   .setIsoAlpha2Code("NC")
-					   .setIsoAlpha3Code("NC")
-					   .setIsoNumericCode(0);
-				}
-				else
+				if(!countryName.equals(NoDataFieldsValues.NO_COUNTRY.toString()))
 				{
 					System.out.println("The name of the country "+countryName+" doesn't follow the standards so it couldn't be found");
 				}
+
+				country.setName(countryName)
+				   .setIsoAlpha2Code("NC")
+				   .setIsoAlpha3Code("NC")
+				   .setIsoNumericCode(0);
 			}
 			else
 			{
@@ -260,6 +262,7 @@ public class WineService {
 	{
 		String wineryJson = this.requestsCreator.createGetRequest(apiUrl, "wineries?action=getByName&name="+wineryName);
 
+		System.out.println("WINERY: "+wineryJson);
 		return wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
 	}
 
@@ -297,11 +300,9 @@ public class WineService {
 	 * Extract vintage and bottle size if it appears on the name and it wasn't found while parsing the website
 	 * @param wine The wine we are building
 	 */
-	public tblWines completeDataFromName(tblWines wine) throws Exception
+	public tblWines completeDataFromName(tblWines wine, String merchantName) throws Exception
 	{
-		int j = 0;
 		//VINTAGE
-		System.out.println(++j);
 		if(wine.getVintage()==null)
 		{
 			final Matcher vintageMatcher = this.vintagePattern.matcher(wine.getName());
@@ -317,7 +318,7 @@ public class WineService {
 				}
 			}
 		}
-		System.out.println(++j);
+
 		//BOTTLE SIZE
 		if(wine.getBottleSize()==null)
 		{
@@ -325,6 +326,7 @@ public class WineService {
 			 * check the patterns one by one,
 			 * if one of them matches we take the value and remove the bottlesize from the name
 			 * */
+			System.out.println(wine.getName());
 			Float bottleSize = null;
 			BottleSizeLoop:
 			for(int i=0;i<this.bottleSizePatterns.length;i++)
@@ -333,18 +335,15 @@ public class WineService {
 				if(bottleSizeMatcher.find())
 				{
 					String data = wine.getName().substring(bottleSizeMatcher.start(), bottleSizeMatcher.end());
-
-					wine.setName(wine.getName().replace(data, "").trim());
-					System.out.println(data);
-					bottleSize = Float.parseFloat(CharMatcher.digit().retainFrom(data));
-
+					bottleSize = Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(data));
+					wine.setName(wine.getName().replace(data, "").replaceAll("(\\d+\\s*(x|\\*)\\s*)?", "").trim());
+					
 					switch(i)
 					{
 						case 1:
 							bottleSize /= 10;
 							break BottleSizeLoop;
 						case 2:
-						case 3:
 							bottleSize *= 100;
 							break BottleSizeLoop;
 						default:
@@ -352,18 +351,52 @@ public class WineService {
 					}
 				}
 			}
-			
+
+			System.out.println(wine.getName());
 			//if we haven't set the size of the bottle yet and we have found it in the name, we add it
 			if(wine.getBottleSize()==null && bottleSize!=null)
 			{
 				wine.setBottleSize(bottleSize);
 			}
+
+			System.out.println(wine.getName());
 		}
-		System.out.println(++j);
+
+		if(wine.getAbv()==null)
+		{
+			Matcher alcoholMatcher = this.alcoholVolumePattern.matcher(wine.getName());
+			if(alcoholMatcher.find())
+			{
+				System.out.println("FOUND ABV ON "+wine.getName());
+				System.out.println(alcoholMatcher.start()+" - "+alcoholMatcher.end());
+				String data = wine.getName().substring(alcoholMatcher.start(), alcoholMatcher.end());
+				System.out.println(data);
+				wine.setName(wine.getName().replace(data, "").trim());
+				wine.setAbv(Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(data)));
+				System.out.println(wine.getName());
+			}
+		}
+		
+		if(wine.getName().contains(merchantName))
+		{
+			merchantNamePattern = Pattern.compile("\\s*(-|,)+?\\s*"+Pattern.quote(merchantName)+"\\s*(-|,)+?\\s*");
+			Matcher merchantNameMatcher = merchantNamePattern.matcher(wine.getName());
+			if(merchantNameMatcher.find())
+			{
+				String data = wine.getName().substring(merchantNameMatcher.start(), merchantNameMatcher.end());
+				wine.setName(wine.getName().replace(data, ""));
+			}
+			else
+			{
+				System.out.println("Merchant name found but not matched");
+				wine.setName(wine.getName().replace(merchantName, ""));
+			}
+		}
+
 		return wine;
 	}
 
-	public String getImageName(String imageUrl, Integer wineId)
+	public String getImageName(String imageUrl	, Integer wineId)
 	{
 		String imageLink = this.escape(imageUrl.replaceFirst("https", "http").replaceAll(Pattern.quote(" "), "%20"), "'");
 		Integer fileFormatStart = imageLink.lastIndexOf(".")+1;
@@ -400,7 +433,11 @@ public class WineService {
 				e.printStackTrace();
 				return;
 			}
+
 			this.ftp.enterLocalPassiveMode();
+			this.ftp.setControlKeepAliveTimeout(300);
+			this.ftp.setDefaultTimeout(300);
+
 			try {
 				this.ftp.setFileType(FTP.BINARY_FILE_TYPE);
 			} catch (IOException e1) {
@@ -408,6 +445,7 @@ public class WineService {
 				e1.printStackTrace();
 				return;
 			}
+
 			try {
 				ftp.storeFile(properties.getProperty("ftp.folder")+"/"+imageName, new URL(downloadUrl).openStream());
 			} catch (MalformedURLException e) {
@@ -419,6 +457,7 @@ public class WineService {
 				e.printStackTrace();
 				return;
 			}
+			System.out.println(6);
 		} finally {
 			if(ftp.isConnected())
 			{
@@ -452,5 +491,45 @@ public class WineService {
 			text = text.replace(character, "\\"+character);
 
 		return text;
+	}
+
+	public tblWines mergeWines(tblWines wine, tblWines existingWine) {
+		if(existingWine.getAbv()==null && wine.getAbv()!=null)
+				existingWine.setAbv(wine.getAbv());
+
+		if(existingWine.getAppellation()==null && wine.getAppellation()!=null)
+			existingWine.setAppellation(wine.getAppellation());
+
+		if(existingWine.getBottleSize()==null && wine.getBottleSize()!=null)
+			existingWine.setBottleSize(wine.getBottleSize());
+
+		if(existingWine.getClosure()==null && wine.getClosure()!=null)
+			existingWine.setClosure(wine.getClosure());
+
+		if(existingWine.getColour()==null && wine.getColour()!=null)
+			existingWine.setColour(wine.getColour());
+
+		if(existingWine.getCountry()==null && wine.getCountry()!=null)
+			existingWine.setCountry(wine.getCountry());
+
+		if(existingWine.getDefaultDescription().length() < wine.getDefaultDescription().length())
+		{
+			existingWine.setDefaultDescription(wine.getDefaultDescription());
+			existingWine.setShortDescription(wine.getShortDescription());
+		}
+
+		if(existingWine.getGtin()==null && wine.getGtin()!=null)
+			existingWine.setGtin(wine.getGtin());
+
+		if(existingWine.getRegion()==null && wine.getRegion()!=null)
+			existingWine.setRegion(wine.getRegion());
+
+		if(existingWine.getVintage()==null && wine.getVintage()!=null)
+			existingWine.setVintage(wine.getVintage());
+
+		if(existingWine.getWinery()==null && wine.getWinery()!=null)
+			existingWine.setWinery(wine.getWinery());
+
+		return existingWine;
 	}
 }

@@ -35,6 +35,7 @@ public class PartnersProductsService {
     public synchronized Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
     {
     	String response = this.requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product));
+    	System.out.println("ID: "+response);
     	return Integer.parseInt(response);
     }
 

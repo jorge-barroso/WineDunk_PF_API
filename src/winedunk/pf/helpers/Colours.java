@@ -2,7 +2,7 @@ package winedunk.pf.helpers;
 
 public enum Colours {
 	RED("Red"),
-	ROSE("Rosé"),
+	ROSE("Rose"),
 	WHITE("White");
 	
 	private String selectedValue;
