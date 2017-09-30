@@ -159,7 +159,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		try {
 			productFeeds = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getAll", "{}");
 			allProductFeedsList = this.mapper.readValue(productFeeds, mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
-			System.out.println(allProductFeedsList);
+			//System.out.println(allProductFeedsList);
 		} catch (IOException e2) {
 			e2.printStackTrace();
 			Thread.currentThread().interrupt();
@@ -178,12 +178,13 @@ public class ProductFeedsPocessor extends HttpServlet {
 				@Override
 				public void run() {
 					try {
-						if(pf.getStartTime().getTime() > Calendar.getInstance().getTimeInMillis())
+						if(pf.getStartTime()!=null && pf.getStartTime().getTime() > Calendar.getInstance().getTimeInMillis())
 							return;
 
 						CronExpression expression;
 						//Analyse cron, set as failed if there's a problem  parsing it
 						try {
+							System.out.println(pf.getTimePeriod());
 							expression = new CronExpression(pf.getTimePeriod());
 						} catch (ParseException e) {
 							System.out.println("The cron expression for the product feed "+pf.getId()+" ("+pf.getDescription()+") doesn't seem to have a valid cron format");

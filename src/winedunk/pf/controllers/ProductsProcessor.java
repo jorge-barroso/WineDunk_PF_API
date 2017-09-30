@@ -10,6 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -41,7 +46,7 @@ public class ProductsProcessor extends HttpServlet {
 	private final Properties properties = new Properties();
 	private final FTPClient ftp = new FTPClient();
 	private final Date executionDate = new Date();
-	private ProductsProcessRunnable runnable;
+	//private ProductsProcessRunnable runnable;
 
 	public ProductsProcessor() {
         super();
@@ -60,7 +65,7 @@ public class ProductsProcessor extends HttpServlet {
 			e1.printStackTrace();
 			return;
 		}
-		runnable = new ProductsProcessRunnable(properties, executionDate);
+		//runnable = new ProductsProcessRunnable(properties, executionDate);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -76,8 +81,8 @@ public class ProductsProcessor extends HttpServlet {
 
 			@Override
 			public void run() {
-				//final List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
-				final List<Integer> futures = new ArrayList<Integer>();
+				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
+				//final List<Integer> futures = new ArrayList<Integer>();
 				JsonNode requestBody;
 				try {
 					requestBody = new String(requestBytes).trim().length()>0 ? new ObjectMapper().readTree(request.getInputStream()) : new ObjectMapper().createObjectNode();
@@ -92,8 +97,8 @@ public class ProductsProcessor extends HttpServlet {
 				}
 				try {
 					//Executor to process each product
-					//Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
-					//final ExecutorService executor = Executors.newSingleThreadExecutor();
+					//Executors.newSingleThreadExecutor();
+					final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
 					//List of products
 					List<Tblpfproduct> products;
 					try {
@@ -140,31 +145,23 @@ public class ProductsProcessor extends HttpServlet {
 								} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
 							}
 						}
-						/*try {
-							semaphore.acquire();
-						} catch (InterruptedException e) {
-							System.out.println("Thread interrupted while trying to acquire permission from the semaphore");
-							e.printStackTrace();
-							return;
-						}
-						//futures.add(executor.submit(new ProductsProcessRunnable(product, properties, executionDate, ftp)));
+						futures.add(executor.submit(new ProductsProcessRunnable(properties, executionDate, product)));
 						
-						semaphore.release();*/
-						try {
+						/*try {
 							futures.add(runnable.call(product));
 						} catch (Exception e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
-						}
+						}*/
 					}
 					//close executor after everything has finished
-					/*executor.shutdown();
+					executor.shutdown();
 					try {
 						executor.awaitTermination(1l, TimeUnit.DAYS);
 					} catch (InterruptedException e) {
 						System.out.println("An exception occured while internally waiting for all products to be processed");
 						e.printStackTrace();
-					}*/
+					}
 				} finally {
 					//close ftp connection whatever happens
 					if(ftp.isConnected())
@@ -180,21 +177,21 @@ public class ProductsProcessor extends HttpServlet {
 				}
 
 				final Map<Integer, Integer> numberOfProductsPerPF = new HashMap<Integer, Integer>();
-				for(Integer future : futures)
+				for(Future<Integer> future : futures)
 				{
-					//try {
-						Integer productId = future;//future.get();
+					try {
+						Integer productId = future.get();//future;
 						if(numberOfProductsPerPF.containsKey(productId) && productId!=null)
 							numberOfProductsPerPF.put(productId, numberOfProductsPerPF.get(productId)+1);
 						else
 							numberOfProductsPerPF.put(productId, 1);
-					/*} catch (InterruptedException e) {
+					} catch (InterruptedException e) {
 						System.out.println("The process had been interrupted when/while counting the wines imported");
 						e.printStackTrace();
 					} catch (ExecutionException e) {
 						System.out.println("An unhandled exception was thrown while processing one of the products");
 						e.printStackTrace();
-					}*/
+					}
 				}
 			}
 

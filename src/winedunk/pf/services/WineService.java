@@ -167,6 +167,7 @@ public class WineService {
 					   .setIsoNumericCode(cc.getNumeric());
 			}
 		}
+
 		return country;
 	}
 
@@ -180,7 +181,12 @@ public class WineService {
 	 */
 	public tblRegions getRegion(String regionName) throws JsonParseException, JsonMappingException, IOException
 	{
-		return this.masterGetRegion("regions?action=getByName&name="+regionName);
+		tblRegions region = this.masterGetRegion("regions?action=getByName&name="+regionName);
+
+		if(region.getId()==null)
+			region.setName(regionName);
+
+		return region;
 	}
 
 	/**
@@ -220,7 +226,10 @@ public class WineService {
 	 */
 	public tblAppellations getAppellation(String appellationName) throws JsonParseException, JsonMappingException, IOException
 	{
-		return this.getAppellation("getByName", "name="+appellationName);
+		tblAppellations appellation = this.getAppellation("getByName", "name="+appellationName);
+		if(appellation.getId()==null)
+			appellation.setName(appellationName);
+		return appellation;
 	}
 	/**
 	 * 
@@ -262,8 +271,12 @@ public class WineService {
 	{
 		String wineryJson = this.requestsCreator.createGetRequest(apiUrl, "wineries?action=getByName&name="+wineryName);
 
-		System.out.println("WINERY: "+wineryJson);
-		return wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
+		tblWineries winery = wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
+
+		if(winery.getId()==null)
+			winery.setName(wineryName);
+
+		return winery;
 	}
 
 	/**
@@ -278,7 +291,12 @@ public class WineService {
 	{
 		String closureJson = this.requestsCreator.createGetRequest(apiUrl, "closures?action=getByName&name="+closureName);
 
-		return closureJson.isEmpty() ? new tblClosures() : this.mapper.readValue(closureJson, tblClosures.class);
+		tblClosures closure = closureJson.isEmpty() ? new tblClosures() : this.mapper.readValue(closureJson, tblClosures.class);
+
+		if(closure.getId()==null)
+			closure.setName(closureName);
+
+		return closure;
 	}
 
 	/**
@@ -293,7 +311,12 @@ public class WineService {
 	{
 		String colourJson = this.requestsCreator.createGetRequest(apiUrl, "colours?action=getByName&name="+colourName);
 
-		return colourJson.isEmpty() ? new tblColours() : this.mapper.readValue(colourJson, tblColours.class);
+		tblColours colour = colourJson.isEmpty() ? new tblColours() : this.mapper.readValue(colourJson, tblColours.class);
+
+		if(colour.getId()==null)
+			colour.setName(colourName);
+
+		return colour;
 	}
 
 	/**
@@ -416,7 +439,7 @@ public class WineService {
 	 * @param downloadUrl
 	 * @return
 	 */
-	public synchronized void getImage(String imageName, String downloadUrl)
+	public void getImage(String imageName, String downloadUrl)
 	{
 		try {
 			try {
@@ -472,14 +495,14 @@ public class WineService {
 		}
 	}
 
-	public synchronized Integer insertWine(tblWines wine) throws NumberFormatException, JsonProcessingException, IOException
+	public Integer insertWine(tblWines wine) throws NumberFormatException, JsonProcessingException, IOException
 	{
 		String response = requestsCreator.createPostRequest(this.apiUrl, "wines?action=addWine", this.mapper.writeValueAsString(wine));
 		return Integer.valueOf(response);
 
 	}
 
-	public synchronized Boolean updateWine(tblWines wine) throws JsonProcessingException, IOException
+	public Boolean updateWine(tblWines wine) throws JsonProcessingException, IOException
 	{
 		String response = requestsCreator.createPostRequest(apiUrl, "wines?action=updateWine", new ObjectMapper().writeValueAsString(wine));
 		return Boolean.valueOf(response);

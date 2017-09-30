@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.text.StringEscapeUtils;
@@ -41,7 +42,7 @@ import winedunk.pf.models.tblWineTypes;
 import winedunk.pf.models.tblWineries;
 import winedunk.pf.models.tblWines;
 
-public class ProductsProcessRunnable {
+public class ProductsProcessRunnable implements Callable<Integer>{
 
 	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
@@ -49,17 +50,18 @@ public class ProductsProcessRunnable {
 	private final Date executionDate;
 	private WineService wineService;
 	private PartnersProductsService partnerProductsService;
-
+	private Tblpfproduct product;
 	/**
 	 * 
 	 * @param product
 	 * @param properties
 	 * @param executionDate
 	 */
-	public ProductsProcessRunnable(Properties properties, Date executionDate)
+	public ProductsProcessRunnable(Properties properties, Date executionDate, Tblpfproduct product)
 	{
 		this.properties = properties;
 		this.executionDate = executionDate;
+		this.product = product;
 
 		try {
 			this.wineService = new WineService(properties);
@@ -78,7 +80,11 @@ public class ProductsProcessRunnable {
 	 * <p>We will use that list later to count how many wines have been processed </p>
 	 * 
 	 */
-	public Integer call(Tblpfproduct product) throws Exception {
+	@Override
+	public Integer call() throws Exception {
+		if(!product.getMerchantName().equals("Majestic Wine"))
+			return null;
+
 		productProcess(product);
 
 		if(!Thread.currentThread().isInterrupted())
@@ -265,7 +271,7 @@ public class ProductsProcessRunnable {
 		if(partnerProduct.getId()==null)
 		{
 			try {
-				synchronized(this) { partnerProduct.setId(this.partnerProductsService.insertProduct(partnerProduct)); }
+				partnerProduct.setId(this.partnerProductsService.insertProduct(partnerProduct));
 			} catch (NumberFormatException e) {
 				System.out.println("Id returned by the CRUD while inserting the product was not a proper number");
 				e.printStackTrace();
@@ -390,8 +396,16 @@ public class ProductsProcessRunnable {
     				continue;
 
     			//if we don't find te current keyword go for the next one
-        		if(!elements.get(i).ownText().toLowerCase().contains(merchantParsing.getNameInWeb().toLowerCase()))
-        			continue;
+        		if(merchantParsing.getMustMatch())
+        		{
+        			if(!elements.get(i).ownText().toLowerCase().equals(merchantParsing.getNameInWeb().toLowerCase()))
+        				continue;
+        		}
+        		else
+        		{
+        			if(!elements.get(i).ownText().toLowerCase().contains(merchantParsing.getNameInWeb().toLowerCase()))
+        				continue;
+        		}
 
         		System.out.println(merchantParsing.getNameInWeb());
     			String extractedValue;
@@ -400,28 +414,30 @@ public class ProductsProcessRunnable {
     			{
     				case "SameTag":
     					System.out.println(elements.get(i).outerHtml());
-    					extractedValue = elements.get(i).ownText().replace(merchantParsing.getNameInWeb(), "").trim();
-    					System.out.print("SAME TAG: "+extractedValue);
+    					extractedValue = elements.get(i).text().replace(merchantParsing.getNameInWeb(), "").trim();
+    					System.out.print("SAME TAG: '"+extractedValue+"'");
     					break;
     				case "Children":
     					System.out.println(elements.get(i).child(0).outerHtml());
-    					extractedValue = elements.get(i).child(0).ownText().trim();
-    					System.out.print("CHILDREN: "+extractedValue);
+    					extractedValue = elements.get(i).child(0).text().trim();
+    					System.out.print("CHILDREN: '"+extractedValue.trim()+"'");
     					break;
-    				case "NextTag":
-    					System.out.println(elements.get(i+1).outerHtml());
-    					extractedValue = elements.get(++i).ownText().trim();
-    					System.out.print("NEXT TAG: "+extractedValue);
+    				case "PlusTag":
+    					i += merchantParsing.getNumberOfTags();
+    					System.out.println(elements.get(i).outerHtml());
+    					extractedValue = elements.get(i).text().trim();
+    					System.out.print("PLUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
     					break;
     				case "SpecificTag":
     					System.out.println(elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).outerHtml());
     					extractedValue = elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).text().trim();
-    					System.out.print("SPECIFIC TAG: "+extractedValue);
+    					System.out.print("SPECIFIC TAG: '"+extractedValue.trim()+"'");
     					break;
-    				case "PreviousTag":
-    					System.out.println(elements.get(i-1).outerHtml());
-    					extractedValue = elements.get(i-1).ownText().trim();
-    					System.out.print("PREVIOUS TAG: "+extractedValue);
+    				case "MinusTag":
+    					i -= merchantParsing.getNumberOfTags();
+    					System.out.println(elements.get(i).outerHtml());
+    					extractedValue = elements.get(i).text().trim();
+    					System.out.print("MINUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
     					break;
 					default:
 						continue;
@@ -430,7 +446,9 @@ public class ProductsProcessRunnable {
     			//Sanitise and clean values
     			if(merchantParsing.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.BOTTLE_SIZE.toString()))
     			{
-    				Integer temporaryValue = Integer.parseInt(CharMatcher.digit().retainFrom(extractedValue));
+
+    				Float temporaryValue = Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(extractedValue));
+
     					if(extractedValue.toLowerCase().contains("m"))
     						extractedValue = String.valueOf(temporaryValue/10);
     					else if(extractedValue.toLowerCase().contains("d"))
@@ -531,7 +549,6 @@ public class ProductsProcessRunnable {
 	
 			if(closure.getId()==null)
 			{
-				closure.setName(wineValues.get(TblWineFields.CLOSURE.toString()));
 				closure.setDeleted(false);
 				closure.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "closures?action=addClosure", this.mapper.writeValueAsString(closure))));
 			}
@@ -579,7 +596,6 @@ public class ProductsProcessRunnable {
 
 			if(colour.getId()==null)
 			{
-				colour.setName(wineValues.get(TblWineFields.COLOUR.toString()));
 				colour.setDeleted(false);
 				colour.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "colours?action=addColour", this.mapper.writeValueAsString(colour))));
 			}
@@ -764,19 +780,17 @@ public class ProductsProcessRunnable {
 
 			if(wine.getCountry().getId()==null)
 			{
-				wine.getCountry().setName(wineValues.get(TblWineFields.COUNTRY.toString()));
+				wine.getCountry().setDeleted(false);
 				wine.getCountry().setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "countries?action=addCountry", this.mapper.writeValueAsString(wine.getCountry()))));
 			}
 
 			//Add country to the region if necessary and then insert or update it 
 			if(region.getTblCountries()==null)
 			{
-				if(region.getTblCountries()==null)
-					region.setTblCountries(wine.getCountry());
+				region.setTblCountries(wine.getCountry());
 				
 				if(region.getId()==null)
 				{
-					region.setName(wineValues.get(TblWineFields.REGION.toString()));
 					try {
 						System.out.println(region);
 						region.setId(Integer.valueOf(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "regions?action=addRegion", this.mapper.writeValueAsString(region))));
@@ -795,7 +809,7 @@ public class ProductsProcessRunnable {
 				else
 				{
 					try {
-						synchronized(this) { this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "regions?action=updateRegion", this.mapper.writeValueAsString(region)); }
+						this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "regions?action=updateRegion", this.mapper.writeValueAsString(region));
 					} catch (JsonProcessingException e) {
 						e.printStackTrace();
 						System.out.println("While sending a request to the CRUD to update the region, something went wrong serialising it to JSON");
@@ -821,7 +835,6 @@ public class ProductsProcessRunnable {
 	
 				if(appellation.getId()==null)
 				{
-					appellation.setName(wineValues.get(TblWineFields.APPELLATION.toString()));
 					String id;
 					try {
 						id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "appellations?action=addAppellation", this.mapper.writeValueAsString(appellation));
@@ -856,9 +869,9 @@ public class ProductsProcessRunnable {
 					}
 				}
 			}
-	
+
 			wine.setAppellation(appellation);
-	
+
 			//Add country, region and appellation to the winery if needed and insert or update it
 			if(winery.getAppellationId()==null || winery.getRegionId()==null || winery.getTblCountries()==null)
 			{
@@ -871,7 +884,6 @@ public class ProductsProcessRunnable {
 	
 				if(winery.getId()==null)
 				{
-					winery.setName(wineValues.get(TblWineFields.WINERY.toString()));
 					String id;
 					try {
 						id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "wineries?action=addWinery", this.mapper.writeValueAsString(winery));
@@ -964,7 +976,7 @@ public class ProductsProcessRunnable {
 			Thread.currentThread().interrupt();
 			return;
 		} catch (JsonMappingException e1) {
-			System.out.println("While trying to get the possibly existing wine type by its name from the CRUD, the JSON response couldn't be mapped to a tblClosure object (discrepancies between model and JSON)");
+			System.out.println("While trying to get the possibly existing wine type by its name from the CRUD, the JSON response couldn't be mapped to a tblWineType object (discrepancies between model and JSON)");
 			e1.printStackTrace();
 			Thread.currentThread().interrupt();
 			return;
@@ -983,7 +995,7 @@ public class ProductsProcessRunnable {
 			wineType.setDeleted(false);
 
 				try {
-					synchronized(this) { wineType.setId(Integer.valueOf(this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "winetypes?action=addWineType", this.mapper.writeValueAsString(wineType)))); }
+					wineType.setId(Integer.parseInt(this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "winetypes?action=addWineType", this.mapper.writeValueAsString(wineType))));
 				} catch (NumberFormatException e) {
 					System.out.println("Id returned by the CRUD while inserting the wine type was not a proper number");
 					e.printStackTrace();
@@ -1030,7 +1042,7 @@ public class ProductsProcessRunnable {
 		winesWineType = new TblWinesWineType(wine, wineType);
 
 		try {
-			synchronized(this) { this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblWinesWineTypes?action=addTblWinesWineType", this.mapper.writeValueAsString(winesWineType)); }
+			this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblWinesWineTypes?action=addTblWinesWineType", this.mapper.writeValueAsString(winesWineType));
 		} catch (JsonProcessingException e) {
 			System.out.println("An exception came up while serialising the tblWinesWineType to JSON before sending it for insertion in the database");
 			e.printStackTrace();
