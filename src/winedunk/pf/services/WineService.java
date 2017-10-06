@@ -349,7 +349,6 @@ public class WineService {
 			 * check the patterns one by one,
 			 * if one of them matches we take the value and remove the bottlesize from the name
 			 * */
-			System.out.println(wine.getName());
 			Float bottleSize = null;
 			BottleSizeLoop:
 			for(int i=0;i<this.bottleSizePatterns.length;i++)
@@ -375,14 +374,12 @@ public class WineService {
 				}
 			}
 
-			System.out.println(wine.getName());
 			//if we haven't set the size of the bottle yet and we have found it in the name, we add it
 			if(wine.getBottleSize()==null && bottleSize!=null)
 			{
 				wine.setBottleSize(bottleSize);
 			}
 
-			System.out.println(wine.getName());
 		}
 
 		if(wine.getAbv()==null)
@@ -390,13 +387,9 @@ public class WineService {
 			Matcher alcoholMatcher = this.alcoholVolumePattern.matcher(wine.getName());
 			if(alcoholMatcher.find())
 			{
-				System.out.println("FOUND ABV ON "+wine.getName());
-				System.out.println(alcoholMatcher.start()+" - "+alcoholMatcher.end());
 				String data = wine.getName().substring(alcoholMatcher.start(), alcoholMatcher.end());
-				System.out.println(data);
 				wine.setName(wine.getName().replace(data, "").trim());
 				wine.setAbv(Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(data)));
-				System.out.println(wine.getName());
 			}
 		}
 		
@@ -426,8 +419,13 @@ public class WineService {
 		Integer fileFormatEnd = imageLink.indexOf('?', fileFormatStart);
 		if(fileFormatEnd<0)
 			fileFormatEnd = imageLink.indexOf('&', fileFormatStart);
-		
-		String format = imageLink.substring(fileFormatStart, fileFormatEnd);
+
+		String format;
+		if(fileFormatEnd<0)
+			format = imageLink.substring(fileFormatStart);
+		else
+			format = imageLink.substring(fileFormatStart, fileFormatEnd);
+
 		String finalImageName = wineId+"."+format;
 
 		return finalImageName;
@@ -480,7 +478,7 @@ public class WineService {
 				e.printStackTrace();
 				return;
 			}
-			System.out.println(6);
+
 		} finally {
 			if(ftp.isConnected())
 			{
@@ -495,7 +493,7 @@ public class WineService {
 		}
 	}
 
-	public Integer insertWine(tblWines wine) throws NumberFormatException, JsonProcessingException, IOException
+	public synchronized Integer insertWine(tblWines wine) throws NumberFormatException, JsonProcessingException, IOException
 	{
 		String response = requestsCreator.createPostRequest(this.apiUrl, "wines?action=addWine", this.mapper.writeValueAsString(wine));
 		return Integer.valueOf(response);

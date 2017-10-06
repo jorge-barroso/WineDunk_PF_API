@@ -71,7 +71,7 @@ public class ProductsProcessor extends HttpServlet {
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 		response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
-		//if there's something in the request body, we map it as Json, otherwise we just set the jsonnode as a new, empty one
+		//if there's something in the request body, we map it as Json, otherwise we just set the JsonNode as a new, empty one
 		byte[] requestBytes = new byte[20];
 		request.getInputStream().read(requestBytes, 0, 20);
 
@@ -97,8 +97,8 @@ public class ProductsProcessor extends HttpServlet {
 				}
 				try {
 					//Executor to process each product
-					//Executors.newSingleThreadExecutor();
-					final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
+					//Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
+					final ExecutorService executor = Executors.newSingleThreadExecutor();
 					//List of products
 					List<Tblpfproduct> products;
 					try {
@@ -121,6 +121,7 @@ public class ProductsProcessor extends HttpServlet {
 						return;
 					}
 
+					Integer j = 1;
 					//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
 					for(Tblpfproduct product : products)
 					{
@@ -145,7 +146,7 @@ public class ProductsProcessor extends HttpServlet {
 								} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
 							}
 						}
-						futures.add(executor.submit(new ProductsProcessRunnable(properties, executionDate, product)));
+						futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
 						
 						/*try {
 							futures.add(runnable.call(product));

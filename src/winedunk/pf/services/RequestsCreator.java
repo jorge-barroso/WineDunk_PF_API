@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -29,24 +30,15 @@ public class RequestsCreator extends EncodeURL {
 		fullURL.replace(" ", "+");
 		//System.out.println("Full URL: "+fullURL);
 		URL url = new URL(fullURL);
-		
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, true, content) : this.startHttpConnection(url, true, content);
+
 		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
 		{
 			url = new URL(con.getHeaderField("Location"));
 			con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
 		}
-
-		BufferedReader in = new BufferedReader(
-		        new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuffer responseBuffer = new StringBuffer();
-
-		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
-
-		in.close();
 		
-		return responseBuffer.toString();
+		return this.readResponse(con);
 	}
 
 	public String createGetRequest(String urlPath) throws IOException
@@ -55,8 +47,8 @@ public class RequestsCreator extends EncodeURL {
 		urlPath = urlPath.replaceAll(" ", "+");
 		//System.out.println("Full URL: "+url);
 		URL url = new URL(urlPath);
-		
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
+
 		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
 		{
 			url = new URL(con.getHeaderField("Location"));
@@ -64,14 +56,7 @@ public class RequestsCreator extends EncodeURL {
 		}
 
 		//Get result
-		BufferedReader in = new BufferedReader(
-		        new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuffer responseBuffer = new StringBuffer();
-
-		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
-		in.close();
-		return responseBuffer.toString();
+		return this.readResponse(con);
 	}
 
 	public String createGetRequest(String urlPath, String relURL) throws IOException
@@ -187,5 +172,24 @@ public class RequestsCreator extends EncodeURL {
 		con.connect();
 
 		return con;
+	}
+
+	/**
+	 * 
+	 * @param con
+	 * @return
+	 * @throws IOException
+	 */
+	private String readResponse(URLConnection con) throws IOException {
+		BufferedReader in = new BufferedReader(
+		        new InputStreamReader(con.getInputStream(), "UTF-8"));
+		String inputLine;
+		StringBuffer responseBuffer = new StringBuffer();
+
+		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
+
+		in.close();
+		
+		return responseBuffer.toString();
 	}
 }
