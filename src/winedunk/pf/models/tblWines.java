@@ -24,7 +24,9 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 @Table(name = "tblWines")
 @NamedQueries({ @NamedQuery(name = "tblWines.FindByGtin", query = "SELECT t FROM tblWines t WHERE t.gtin = :gtin"),
 		@NamedQuery(name = "tblWines.FindByNameBottleAndVintage", query = "SELECT t FROM tblWines t "
-				+ "WHERE t.name = :name " + "AND t.bottleSize = :bottleSize " + "AND t.vintage = :vintage") })
+																		+ "WHERE t.name = :name "
+																		+ "AND t.bottleSize = :bottleSize or (:bottleSize IS NULL AND t.bottleSize IS NULL)"
+																		+ "AND t.vintage = :vintage or (:vintage IS NULL AND t.vintage IS NULL)") })
 @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class tblWines {
 

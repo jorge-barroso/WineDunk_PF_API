@@ -97,8 +97,8 @@ public class ProductsProcessor extends HttpServlet {
 				}
 				try {
 					//Executor to process each product
-					//Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
-					final ExecutorService executor = Executors.newSingleThreadExecutor();
+					//Executors.newSingleThreadExecutor();
+					final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
 					//List of products
 					List<Tblpfproduct> products;
 					try {
@@ -193,6 +193,13 @@ public class ProductsProcessor extends HttpServlet {
 						System.out.println("An unhandled exception was thrown while processing one of the products");
 						e.printStackTrace();
 					}
+				}
+
+				try {
+					new RequestsCreator().createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices");
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
+					e.printStackTrace();
 				}
 			}
 

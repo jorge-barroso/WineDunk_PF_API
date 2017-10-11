@@ -186,7 +186,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     		return;
     	}
 
-    	System.out.println("GETTING DATA FROM WINE NAME");
+    	//System.out.println("GETTING DATA FROM WINE NAME");
 		//Sanitise the name removing unwanted details and extract those details as possible values  for other fields in the tblWines table
 		try {
 			wine = this.wineService.completeDataFromName(wine, product.getMerchantName());
@@ -237,7 +237,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			}
 		}
 
-		System.out.println("SETTING WINE GRAPE VARIETY");
+		//System.out.println("SETTING WINE GRAPE VARIETY");
     	if(!(wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString())==null || wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).trim().isEmpty()))
     	{
     		String[] grapeVarieties = wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).replaceAll("\\d+\\s*%", "").split("(\\s*,\\s*|\\s*-\\s*|\\s*and\\s*)");
@@ -249,7 +249,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
         	}
     	}
 
-    	System.out.println("GETTING IMAGE");
+    	//System.out.println("GETTING IMAGE");
 		if(wine.getImageURL()==null /*TODO || blank "no-image" image and this product contains a valid image*/)
 		{
 			String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
@@ -259,14 +259,14 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		}
 
 		//Work out the wine type
-		System.out.println("SETTING WINE TYPE");
+		//System.out.println("SETTING WINE TYPE");
 		if(!(wineValues.get(TblWineFields.WINE_TYPE.toString())==null || wineValues.get(TblWineFields.WINE_TYPE.toString()).trim().isEmpty()) && wineValues.get(TblWineFields.WINE_TYPE.toString()).length()<=100)
 			this.setWinesWineType(wine, wineValues.get(TblWineFields.WINE_TYPE.toString()));
 		else if(!product.getProductType().trim().isEmpty())
 			this.setWinesWineType(wine, product.getProductType());
 		else
 			this.setWinesWineType(wine, NoDataFieldsValues.NO_WINETYPE.toString());
-		System.out.println("WINE TYPE SET");
+		//System.out.println("WINE TYPE SET");
 
 		if(Thread.currentThread().isInterrupted())
 		{
@@ -274,7 +274,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			return;
 		}
 
-		System.out.println("UPDATING WINE");
+		//System.out.println("UPDATING WINE");
 		//update wine
 		try {
 			this.wineService.updateWine(wine);
@@ -431,37 +431,36 @@ public class ProductsProcessRunnable implements Callable<Integer>{
         				continue;
         		}
 
-        		System.out.println(merchantParsing.getNameInWeb());
     			String extractedValue;
     			//extract value
     			switch(merchantParsing.getTblpfparsingextractionmethod().getMethod())
     			{
     				case "SameTag":
-    					System.out.println(elements.get(i).outerHtml());
+    					//System.out.println(elements.get(i).outerHtml());
     					extractedValue = elements.get(i).text().replace(merchantParsing.getNameInWeb(), "").trim();
-    					System.out.print("SAME TAG: '"+extractedValue+"'");
+    					//System.out.print("SAME TAG: '"+extractedValue+"'");
     					break;
     				case "Children":
-    					System.out.println(elements.get(i).child(0).outerHtml());
+    					//System.out.println(elements.get(i).child(0).outerHtml());
     					extractedValue = elements.get(i).child(0).text().trim();
-    					System.out.print("CHILDREN: '"+extractedValue.trim()+"'");
+    					//System.out.print("CHILDREN: '"+extractedValue.trim()+"'");
     					break;
     				case "PlusTag":
     					i += merchantParsing.getNumberOfTags();
-    					System.out.println(elements.get(i).outerHtml());
+    					//System.out.println(elements.get(i).outerHtml());
     					extractedValue = elements.get(i).text().trim();
-    					System.out.print("PLUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
-    					break;
-    				case "SpecificTag":
-    					System.out.println(elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).outerHtml());
-    					extractedValue = elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).text().trim();
-    					System.out.print("SPECIFIC TAG: '"+extractedValue.trim()+"'");
+    					//System.out.print("PLUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
     					break;
     				case "MinusTag":
     					i -= merchantParsing.getNumberOfTags();
-    					System.out.println(elements.get(i).outerHtml());
+    					//System.out.println(elements.get(i).outerHtml());
     					extractedValue = elements.get(i).ownText().trim();
-    					System.out.print("MINUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
+    					//System.out.print("MINUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
+    					break;
+    				case "SpecificTag":
+    					//System.out.println(elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).outerHtml());
+    					extractedValue = elements.get(i).getElementsByTag(merchantParsing.getSpecificTag()).text().trim();
+    					//System.out.print("SPECIFIC TAG: '"+extractedValue.trim()+"'");
     					break;
 					default:
 						continue;
@@ -1089,7 +1088,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	String grpVarietyJson;
 		try {
 			grpVarietyJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "grapevarieties?action=getByName&name="+grapeVarietyName);
-			System.out.println("GRPVARIETY: "+grpVarietyJson);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1131,7 +1129,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 					e.printStackTrace();
 					return;
 				}
-			
 		}
 
 		TblWinesGrapeVariety wineGrapeVariety = new TblWinesGrapeVariety();
