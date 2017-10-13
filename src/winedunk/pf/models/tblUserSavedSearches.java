@@ -1,4 +1,4 @@
-package winedunk.pf.models;
+	package winedunk.pf.models;
 
 import java.util.Date;
 
@@ -39,27 +39,31 @@ public class tblUserSavedSearches {
     public tblUsers getUser() { return user; }
     public void setUser(tblUsers user) { this.user = user; }
 
-    //@Formats.DateTime(pattern="yyyy-MM-dd")
-    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     @Temporal(TemporalType.DATE)
     @Column(name = "created")
     private Date created;
     public Date getCreated() { return created; }
     public void setCreated(Date created) { this.created = created; }
 
-    @Column(name = "sqlString")
-    private String sqlString;
-    public String getSqlString() { return sqlString; }
-    public void setSqlString(String SQL) { this.sqlString = SQL; }
+    @Column(name = "urlString")
+    private String urlString;
+    public String getUrlString() { return urlString; }
+	public void setUrlString(String urlString) { this.urlString = urlString; }
+	
 
-    public tblUserSavedSearches(Integer id) {this.id = id;}
+    @Transient
+    private Integer numericUserId;
+    public Integer getNumericUserId() { return numericUserId; }
+    
+    
+	public tblUserSavedSearches(Integer id) {this.id = id;}
     public tblUserSavedSearches()
     {
         this.id = null;
         this.user = null;
         this.name = null;
         this.created = null;
-        this.sqlString = null;
+        this.urlString = null;
     }
     public tblUserSavedSearches(String name) { this.name = name; }
 }

@@ -1,9 +1,15 @@
 package winedunk.pf.models;
 
 import java.io.Serializable;
-import java.lang.Integer;
-import java.lang.String;
-import javax.persistence.*;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
+import javax.persistence.NamedQuery;
+import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -34,7 +40,7 @@ public class TblPFCountryNameMappingTable implements Serializable {
 	@ManyToOne
 	@JoinColumn(name="countryId")
 	private tblCountries tblCountries;
-	@Column(name="merchantName")
+	@Column(name="mechantName")
 	private String merchantCountryName;
 
 	public TblPFCountryNameMappingTable() {

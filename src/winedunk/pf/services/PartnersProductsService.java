@@ -32,7 +32,7 @@ public class PartnersProductsService {
      * @throws JsonProcessingException
      * @throws IOException
      */
-    public synchronized Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
+    public Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
     {
     	String response = this.requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product));
     	return Integer.parseInt(response);
@@ -45,7 +45,7 @@ public class PartnersProductsService {
      * @throws JsonProcessingException
      * @throws IOException
      */
-    public synchronized Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
+    public Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
     {
     	String response = requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", mapper.writeValueAsString(product));
     	return Boolean.valueOf(response);
@@ -62,10 +62,11 @@ public class PartnersProductsService {
     public tblPartnersProducts getProduct(String partnerProductId, String merchantProductId) throws IOException
     {
     	//get possibly existing product
-    	String requestParameters = "{ \"partnerProductId\" : "+partnerProductId+", "
- 		 						 + "\"merchanProductId\" : "+merchantProductId+" }";
+    	String requestParameters = "action=getByPartnerProductIdAndMerchantProductId"
+    							 + "&partnerProductId="+partnerProductId
+ 		 						 + "&merchantProductId="+merchantProductId;
     	
-    	String productString = requestsCreator.createPostRequest(apiUrl, "partnersProductss?action=getByPartnerProductIdAndMerchantProductId", requestParameters);
+    	String productString = requestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters);
     	
     	if(productString.isEmpty())
     		return new tblPartnersProducts();

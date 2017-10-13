@@ -4,7 +4,8 @@ public enum PfStatus {
 
 	OK("Ok"),
 	PROCESSING("Processing"),
-	ERROR("Error");
+	ERROR("Error"),
+	NEW("New");
 
 	private final String selectedField;
 

@@ -4,16 +4,21 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
@@ -21,8 +26,6 @@ import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.net.ftp.FTPClient;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -32,6 +35,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import winedunk.pf.helpers.PfStatus;
+import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
 import winedunk.pf.services.ProductsProcessRunnable;
 import winedunk.pf.services.RequestsCreator;
@@ -44,7 +48,6 @@ import winedunk.pf.services.RequestsCreator;
 public class ProductsProcessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private final Properties properties = new Properties();
-	private final FTPClient ftp = new FTPClient();
 	private final Date executionDate = new Date();
 	//private ProductsProcessRunnable runnable;
 
@@ -78,13 +81,13 @@ public class ProductsProcessor extends HttpServlet {
 		//Semaphore semaphore = new Semaphore(10);
 
 		new Thread(new Runnable() {
-
+			RequestsCreator requestsCreator = new RequestsCreator();
 			@Override
 			public void run() {
-				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>();
 				//final List<Integer> futures = new ArrayList<Integer>();
 				JsonNode requestBody;
 				try {
+					//Create a JsonNode with the parameters sent in the request (presumably id of the product feed which products we want to import) if something is present 
 					requestBody = new String(requestBytes).trim().length()>0 ? new ObjectMapper().readTree(request.getInputStream()) : new ObjectMapper().createObjectNode();
 				} catch (JsonProcessingException e2) {
 					// TODO Auto-generated catch block
@@ -95,87 +98,83 @@ public class ProductsProcessor extends HttpServlet {
 					e2.printStackTrace();
 					return;
 				}
-				try {
-					//Executor to process each product
-					//Executors.newSingleThreadExecutor();
-					final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
-					//List of products
-					List<Tblpfproduct> products;
-					try {
-						products = getProductsList(requestBody.has("id") ? requestBody.get("id").asInt() : null);
-					} catch (JsonParseException e1) {
-						System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD doesn't seem to have a valid JSON format");
-						e1.printStackTrace();
-						return;
-					} catch (JsonMappingException e1) {
-						System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD couldn't be mapped to a proper List of Tblpfproduct");
-						e1.printStackTrace();
-						return;
-					} catch (NumberFormatException e1) {
-						System.out.println("The ProductFeed id provided was not a proper number");
-						e1.printStackTrace();
-						return;
-					} catch (IOException e1) {
-						System.out.println("Couldn't reach the CRUD or there was a low-level I/O error, please check the server");
-						e1.printStackTrace();
-						return;
-					}
 
-					Integer j = 1;
-					//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
-					for(Tblpfproduct product : products)
-					{
-						//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
-						if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()))
-						{
-							if(!requestBody.has("id"))
-							{
-								continue;
-							}
-							else
-							{
-								do 
-								{
-									try {
-										Thread.sleep(5000);
-									} catch (InterruptedException e) {
-										System.out.println("Thread interrupted while waiting to process product feed");
-										e.printStackTrace();
-										return;
-									}
-								} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
-							}
-						}
-						futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
-						
-						/*try {
-							futures.add(runnable.call(product));
-						} catch (Exception e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}*/
-					}
-					//close executor after everything has finished
-					executor.shutdown();
-					try {
-						executor.awaitTermination(1l, TimeUnit.DAYS);
-					} catch (InterruptedException e) {
-						System.out.println("An exception occured while internally waiting for all products to be processed");
-						e.printStackTrace();
-					}
-				} finally {
-					//close ftp connection whatever happens
-					if(ftp.isConnected())
-					{
-						try {
-							ftp.logout();
-							ftp.disconnect();
-						} catch (IOException e) {
-							System.out.println("Unable to close server connection");
-							e.printStackTrace();
-						}
-					}
+				//List of products
+				List<Tblpfproduct> products;
+				try {
+					products = getProductsList(requestBody.has("id") ? requestBody.get("id").asInt() : null);
+				} catch (JsonParseException e1) {
+					System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD doesn't seem to have a valid JSON format");
+					e1.printStackTrace();
+					return;
+				} catch (JsonMappingException e1) {
+					System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD couldn't be mapped to a proper List of Tblpfproduct");
+					e1.printStackTrace();
+					return;
+				} catch (NumberFormatException e1) {
+					System.out.println("The ProductFeed id provided was not a proper number");
+					e1.printStackTrace();
+					return;
+				} catch (IOException e1) {
+					System.out.println("Couldn't reach the CRUD or there was a low-level I/O error, please check the server");
+					e1.printStackTrace();
+					return;
 				}
+
+				//Executor to process each product
+				//Executors.newSingleThreadExecutor();
+				//Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1)
+				int queueSize = 1;
+				final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(queueSize);
+				final int cores = Runtime.getRuntime().availableProcessors()-1;
+				final ExecutorService executor = new ThreadPoolExecutor(cores, cores, 0L, TimeUnit.MILLISECONDS, queue);
+				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>(products.size());
+				Integer j = 1;
+				final Set<Tblpf> pfs = new HashSet<Tblpf>();
+				//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
+
+				for(Tblpfproduct product : products)
+				{
+					pfs.add(product.getTblpf());
+					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
+					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()))
+					{
+						if(!requestBody.has("id"))
+						{
+							continue;
+						}
+						else
+						{
+							do 
+							{
+								try {
+									Thread.sleep(5000);
+								} catch (InterruptedException e) {
+									System.out.println("Thread interrupted while waiting to process product feed");
+									e.printStackTrace();
+									return;
+								}
+							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
+						}
+					}
+					
+					while(queue.size()>=queueSize) {}
+					futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
+					/*try {
+						futures.add(runnable.call(product));
+					} catch (Exception e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}*/
+				}
+				//close executor after everything has finished
+				try {
+					executor.awaitTermination(1l, TimeUnit.DAYS);
+				} catch (InterruptedException e) {
+					System.out.println("An exception occured while internally waiting for all products to be processed");
+					e.printStackTrace();
+				}
+				executor.shutdown();
 
 				final Map<Integer, Integer> numberOfProductsPerPF = new HashMap<Integer, Integer>();
 				for(Future<Integer> future : futures)
@@ -195,8 +194,28 @@ public class ProductsProcessor extends HttpServlet {
 					}
 				}
 
+				Timestamp time = new Timestamp(new Date().getTime());
+				//Update each product feed with last importation status and time
+				for(Tblpf pf : pfs)
+				{
+					pf.setLastImportation(time);
+					try {
+						this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", new ObjectMapper().writeValueAsString(pf));
+					} catch (IOException e) {
+						System.out.println("There was an exception while reaching the crud to set last importation status");
+						e.printStackTrace();
+					}
+
+					try {
+						this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+pf.getId());
+					} catch (IOException e) {
+						System.out.println("There was an exception while reaching the crud to set last importation status");
+						e.printStackTrace();
+					}
+				}
+
 				try {
-					new RequestsCreator().createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices");
+					this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices");
 				} catch (IOException e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
 					e.printStackTrace();

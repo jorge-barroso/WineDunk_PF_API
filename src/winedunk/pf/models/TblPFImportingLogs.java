@@ -3,18 +3,30 @@ package winedunk.pf.models;
 import java.util.Date;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.Table;
 
 @Entity
 @Table(name = "tblPFImportingLogs")
 public class TblPFImportingLogs {
 
+	@Id
+	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	Integer id;
+
 	String logMessage;
+
 	String technicalDetails;
+
 	Tblpf pf;
+
 	Tblpfproduct product;
+
 	Date date;
+
+	public TblPFImportingLogs(){}
 
 	public TblPFImportingLogs(Integer id, String logMessage, String technicalDetails, Tblpf pf, Tblpfproduct product, Date date) {
 		super();

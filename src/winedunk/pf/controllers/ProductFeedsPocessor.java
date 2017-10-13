@@ -45,6 +45,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import com.winedunk.fileutils.Zip;
 
+import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfmapping;
 import winedunk.pf.models.Tblpfproduct;
@@ -91,7 +92,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		//if we have an id it's because it was called manually, so we quickly process it
 		if(request.getParameter("id")!=null)
 		{
-			String pfJson = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById", "id="+request.getParameter("id"));
+			String pfJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById&id="+request.getParameter("id"));
 			Tblpf pf = this.mapper.readValue(pfJson, Tblpf.class);
 
 			Thread t1 = new Thread(new Runnable() {
@@ -100,9 +101,11 @@ public class ProductFeedsPocessor extends HttpServlet {
 				public void run() {
 					try {
 						productFeedsToProcess.put(pf);
+						ok(pf.getId());
 					} catch (InterruptedException e) {
 						System.out.println("Exception occurred while adding the pf "+pf.getId()+" to the processing queue");
 						e.printStackTrace();
+						fail(pf.getId());
 						return;
 					}
 					doWork();
@@ -131,7 +134,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 
 			//initialize latch to make thread two wait until total amount of product feeds to be processed is declared by thread one
 			this.latch = new CountDownLatch(1);
-			
+
 			//start threads
 			t1.start();
 
@@ -157,7 +160,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		String productFeeds;
 		List<Tblpf> allProductFeedsList;
 		try {
-			productFeeds = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getAll", "{}");
+			productFeeds = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getAll");
 			allProductFeedsList = this.mapper.readValue(productFeeds, mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
 			//System.out.println(allProductFeedsList);
 		} catch (IOException e2) {
@@ -182,7 +185,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 							return;
 
 						CronExpression expression;
-						//Analyse cron, set as failed if there's a problem  parsing it
+						//Analyse cron, set as failed if there's a problem parsing it
 						try {
 							System.out.println(pf.getTimePeriod());
 							expression = new CronExpression(pf.getTimePeriod());
@@ -200,7 +203,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 							Calendar lastExecution = Calendar.getInstance();
 							lastExecution.setTimeInMillis(timestamp.getTime());
 							//if the next execution time is in the past, then we process it now
-							if(expression.getNextValidTimeAfter(lastExecution.getTime()).getTime() <= currentDate.getTime())
+							if(expression.getNextValidTimeAfter(lastExecution.getTime()).getTime() <= currentDate.getTime() || pf.getStandardisationStatus().getName().equals(PfStatus.ERROR.toString()))
 								productFeedsToProcess.add(pf);
 						}
 						else
@@ -238,9 +241,8 @@ public class ProductFeedsPocessor extends HttpServlet {
 						try {
 							processProductFeed(pf);
 							pf.setLastStandardisation(new Timestamp(currentDate.getTime()));
-							synchronized(this) {
-								requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", mapper.writeValueAsString(pf));
-							}
+							requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", mapper.writeValueAsString(pf));
+							ok(pf.getId());
 							return;
 						} catch (MalformedURLException e) {
 							e.printStackTrace();
@@ -266,6 +268,8 @@ public class ProductFeedsPocessor extends HttpServlet {
 	 */
 	public void processProductFeed(Tblpf pf) throws MalformedURLException, IOException
 	{
+		processing(pf.getId());
+
 		String pfMappingJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "PFMapping?action=getByPFId&id="+pf.getId());
 		System.out.println("Mapping JSON: "+pfMappingJson);
 		Tblpfmapping pfMapping = this.mapper.readValue(pfMappingJson, Tblpfmapping.class);  
@@ -328,14 +332,17 @@ public class ProductFeedsPocessor extends HttpServlet {
 								} catch (JsonParseException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
 									e.printStackTrace();
+									fail(pf.getId());
 									return;
 								} catch (JsonMappingException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one couldn't be mapped to a Tblpfproduct object");
 									e.printStackTrace();
+									fail(pf.getId());
 									return;
 								} catch (IOException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, couldn't reach the CRUD or a low-level I/O exception occurred, please check the server");
 									e.printStackTrace();
+									fail(pf.getId());
 									return;
 								}
 
@@ -365,25 +372,25 @@ public class ProductFeedsPocessor extends HttpServlet {
 								}
 								product.setProductType(productType);
 
-								System.out.println(product);
 								//persist only if it's a new product
 								if(product.getId()==null)
 								{
 									try {
-										synchronized(this) {
-											product.setId(Integer.parseInt(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=addProduct", mapper.writeValueAsString(product))));
-										}
+										product.setId(Integer.parseInt(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=addProduct", mapper.writeValueAsString(product))));
 									} catch (NumberFormatException e) {
 										System.out.println("After adding the product to the database, the id returned doesn't seem to be a valid number");
 										e.printStackTrace();
+										fail(pf.getId());
 										return;
 									} catch (JsonProcessingException e) {
 										System.out.println("Whiles trying to add a new product to the database, there was a problem while serialising it");
 										e.printStackTrace();
+										fail(pf.getId());
 										return;
 									} catch (IOException e) {
 										System.out.println("Whiles trying to add a new product to the database, the CRUD wasn't reachable");
 										e.printStackTrace();
+										fail(pf.getId());
 										return;
 									}
 								}
@@ -391,18 +398,18 @@ public class ProductFeedsPocessor extends HttpServlet {
 								{
 									try {
 										Boolean updated;
-										synchronized(this) {
-											updated = Boolean.parseBoolean(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product)));
-										}
+										updated = Boolean.parseBoolean(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product)));
 										if(!updated)
 											System.out.println("Something went wrong updating the wine on the database");
 									} catch (JsonProcessingException e) {
 										System.out.println("Whiles trying to update a product on the database, there was a problem while serialising it");
 										e.printStackTrace();
+										fail(pf.getId());
 										return;
 									} catch (IOException e) {
 										System.out.println("Whiles trying to update a product on the database, the CRUD wasn't reachable");
 										e.printStackTrace();
+										fail(pf.getId());
 										return;
 									}
 								}
@@ -429,10 +436,8 @@ public class ProductFeedsPocessor extends HttpServlet {
 					{
 						if(!productsFound.contains(pfProduct.getId()))
 						{
-							synchronized(this) {
-								if(!Boolean.parseBoolean(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pf.getId()+"}")))
-									System.out.println("Couldn't delete wine "+pf.getId());
-							}
+							if(!Boolean.parseBoolean(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pf.getId()+"}")))
+								System.out.println("Couldn't delete wine "+pf.getId());
 						}
 					}
 				}
@@ -442,10 +447,32 @@ public class ProductFeedsPocessor extends HttpServlet {
 		}
 	}
 
-	protected synchronized void fail(Integer pfId)
+	protected void fail(Integer pfId)
 	{
 		try {
-			this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=fail", "{\"id\" : "+pfId+"}");
+			this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=failStandardisation&id="+pfId);
+		} catch (IOException e) {
+			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
+			e.printStackTrace();
+			return;
+		}
+	}
+
+	protected void ok(Integer pfId)
+	{
+		try {
+			this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okStandardisation&id="+pfId);
+		} catch (IOException e) {
+			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
+			e.printStackTrace();
+			return;
+		}
+	}
+
+	protected void processing(Integer pfId)
+	{
+		try {
+			this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=processingStandardisation&id="+pfId);
 		} catch (IOException e) {
 			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
 			e.printStackTrace();

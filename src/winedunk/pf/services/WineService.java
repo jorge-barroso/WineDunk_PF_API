@@ -51,7 +51,7 @@ public class WineService {
 	 * @param apiUrl
 	 * @throws IOException 
 	 */
-	public WineService(Properties properties) throws IOException
+	public WineService(Properties properties)
 	{
 		this.properties = properties;
 
