@@ -1,9 +1,13 @@
 package winedunk.pf.services;
 
 import java.io.IOException;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import winedunk.pf.models.tblPartnersProducts;
@@ -15,6 +19,9 @@ public class PartnersProductsService {
     private final String servletUrl;
     String apiUrl;
 
+    /**
+     * 
+     */
     public PartnersProductsService(String apiUrl) {
     	this.requestsCreator = new RequestsCreator();
         this.mapper = new ObjectMapper();
@@ -22,6 +29,18 @@ public class PartnersProductsService {
         this.apiUrl = apiUrl;
 
         this.mapper.setSerializationInclusion(Include.NON_NULL);
+    }
+
+
+    /**
+     * 
+     * @return
+     * @throws JsonParseException
+     * @throws JsonMappingException
+     * @throws IOException
+     */
+    public List<tblPartnersProducts> getAll() throws JsonParseException, JsonMappingException, IOException {
+    	return this.mapper.readValue(this.requestsCreator.createGetRequest(apiUrl, servletUrl+"?action=getPartnersProductss"), new TypeReference<List<tblPartnersProducts>>(){});
     }
 
     /**
@@ -73,4 +92,14 @@ public class PartnersProductsService {
 
     	return this.mapper.readValue(productString, tblPartnersProducts.class);
 	}
+
+    public Boolean delete(Integer id)
+    {
+    	try {
+			return Boolean.parseBoolean(this.requestsCreator.createPostRequest(apiUrl, servletUrl+"action=delete", "{\"id\" : "+id+"}"));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+    }
 }

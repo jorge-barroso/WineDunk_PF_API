@@ -27,7 +27,7 @@ public class RequestsCreator extends EncodeURL {
 	{
 		//Create request
 		String fullURL = urlPath + relURL;
-		fullURL.replace(" ", "+");
+		fullURL.replace(" ", "+").replace("%20", "+");
 		//System.out.println("Full URL: "+fullURL);
 		URL url = new URL(fullURL);
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, true, content) : this.startHttpConnection(url, true, content);
@@ -44,7 +44,7 @@ public class RequestsCreator extends EncodeURL {
 	public String createGetRequest(String urlPath) throws IOException
 	{
 		//Create request
-		urlPath = urlPath.replaceAll(" ", "+");
+		urlPath = urlPath.replace(" ", "+").replace("%20", "+");;
 		//System.out.println("Full URL: "+url);
 		URL url = new URL(urlPath);
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);

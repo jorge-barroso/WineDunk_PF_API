@@ -1,12 +1,14 @@
-package winedunk.pf.services;
+package winedunk.pf.runnables;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.Callable;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -41,26 +43,24 @@ import winedunk.pf.models.tblShops;
 import winedunk.pf.models.tblWineTypes;
 import winedunk.pf.models.tblWineries;
 import winedunk.pf.models.tblWines;
+import winedunk.pf.services.PartnersProductsService;
+import winedunk.pf.services.RequestsCreator;
+import winedunk.pf.services.WineService;
 
-public class ProductsProcessRunnableSynchronous {
+public class ProductsProcessRunnable implements Callable<Integer>{
 
 	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
 	private final Properties properties;
 	private final Date executionDate;
-	private final WineService wineService;
-	private final PartnersProductsService partnerProductsService;
+	private Tblpfproduct product;
+	private WineService wineService;
+	private PartnersProductsService partnersProductsService;
 
-	private final Object closureLock = new Object();
-	private final Object colourLock = new Object();
-	private final Object countryLock = new Object();
-	private final Object regionLock = new Object();
-	private final Object appellationLock = new Object();
-	private final Object wineryLock = new Object();
-	private final Object wineTypeLock = new Object();
-	private final Object winesWineTypeLock = new Object();
-	private final Object grapeLock = new Object();
-	private final Object winesGrapeLock = new Object();
+	private Object wineTypeLock = new Object();
+	private Object grapeLock = new Object();
+
+	private Integer j;
 
 	/**
 	 * 
@@ -68,18 +68,14 @@ public class ProductsProcessRunnableSynchronous {
 	 * @param properties
 	 * @param executionDate
 	 */
-	public ProductsProcessRunnableSynchronous(Properties properties, Date executionDate)
+	public ProductsProcessRunnable(Integer j, Properties properties, Date executionDate, Tblpfproduct product)
 	{
 		this.properties = properties;
 		this.executionDate = executionDate;
+		this.product = product;
+		this.j = j;
 
-		this.wineService = new WineService(properties);
-		this.partnerProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
-		
 		this.mapper.setSerializationInclusion(Include.NON_NULL);
-
-
-		
 	}
 
 	/**
@@ -87,17 +83,15 @@ public class ProductsProcessRunnableSynchronous {
 	 * <p>We will use that list later to count how many wines have been processed </p>
 	 * 
 	 */
-	public Integer call(Integer j, Tblpfproduct product) {
+	@Override
+	public Integer call() {
 		/*if(!product.getMerchantName().equals("Majestic Wine"))
 			return null;*/
 		try {
 			System.out.println("Processing wine number "+j);
-			productProcess(product);
+			Integer id = productProcess(product);
 			System.out.println("Wine "+j+" processed");
-			if(!Thread.currentThread().isInterrupted())
-				return product.getTblpf().getId();
-			else
-				return null;
+			return id;
 		} catch(Exception e) {
 			e.printStackTrace();
 			return null;
@@ -108,225 +102,235 @@ public class ProductsProcessRunnableSynchronous {
      * 
      * @param product
      */
-    private void productProcess(Tblpfproduct product) throws Exception
+    private Integer productProcess(Tblpfproduct product)
     {
-    	System.out.println(product.getName() + " - " + product.getMerchantName());
-    	//Get wine values by parsing the website
-    	Map<String, String> wineValues;
-		try {
-			List<Tblpfmerchanthtmlparsing> merchantParsing = this.getParsingInstructions(product.getMerchantName());
-
-			if(merchantParsing==null)
-				return;
-
-			if(merchantParsing.isEmpty())
-			{
-				System.out.println("No parsing for merchant "+product.getMerchantName());
-				return;
-			}
-
-			wineValues = this.parseWebsite(Jsoup.parse(this.requestsCreator.createGetRequest(product.getProductURL()), "UTF-8"), merchantParsing);
-
-		} catch (JsonParseException e4) {
-			System.out.println("While trying to get the merchant by name from the CRUD, response doesn't seem to have a valid JSON format");
-			e4.printStackTrace();
-			return;
-		} catch (JsonMappingException e4) {
-			System.out.println("While trying to get the merchant by name from the CRUD, response doesn't look like a serialised merchant");
-			e4.printStackTrace();
-			return;
-		} catch (IOException e4) {
-			System.out.println("Exception occurred while reaching CRUD");
-			e4.printStackTrace();
-			return;
-		}
-
-		if(Thread.currentThread().isInterrupted())
-		{
-			System.out.println("Thread has been interrupted by an exception processing the wine "+product.getName());
-			return;
-		}
-
-		//Extract wine colour from wine type
-		if(!wineValues.containsKey(TblWineFields.COLOUR.toString()))
-		{
-			if(product.getProductType().toLowerCase().contains(Colours.RED.toString().toLowerCase()))
-				wineValues.put(TblWineFields.COLOUR.toString(), Colours.RED.toString());
-			else if(product.getProductType().toLowerCase().contains("ros"))
-				wineValues.put(TblWineFields.COLOUR.toString(), Colours.ROSE.toString());
-			else if(product.getProductType().toLowerCase().contains(Colours.WHITE.toString().toLowerCase()))
-				wineValues.put(TblWineFields.COLOUR.toString(), Colours.WHITE.toString());
-		}
-
-		//get possibly existing wine and product
-    	tblPartnersProducts partnerProduct;
-		try {
-			partnerProduct = this.partnerProductsService.getProduct(product.getPartnerProductId(), product.getMerchantProductId());
-		} catch (IOException e1) {
-			System.out.println("While trying to find a possible copy of the product already existing in the db (and retrieve it for edition) the CRUD wasn't reachable or there was a low-level I/O exception, please check the server");
-			e1.printStackTrace();
-			return;
-		}
-
-		if(partnerProduct.getLastUpdated()!=null && product.getTblpf().getLastImportation()!=null)
-		{
-			if(partnerProduct.getLastUpdated().getTime()>product.getTblpf().getLastImportation().getTime())
-				return;
-		}
-		//if we have the wine in the product, we get it, otherwise, we instanciate a new one by different methods (looking for possibly already existing wine)
-		tblWines wine = new tblWines();
-
-		//set wine values
-    	wine = this.setWineValues(wine, wineValues, product.getName(), product.getPartnerProductDescription());
-
-    	if(Thread.currentThread().isInterrupted())
-    	{
-    		System.out.println("An exception caused this thread to be interrupted while generating wine "+product.getName());
-    		return;
-    	}
-
-    	//System.out.println("GETTING DATA FROM WINE NAME");
-		//Sanitise the name removing unwanted details and extract those details as possible values  for other fields in the tblWines table
-		try {
-			wine = this.wineService.completeDataFromName(wine, product.getMerchantName());
-		} catch(Exception e) {
-			e.printStackTrace();
-			return;
-		}
-
-		tblWines existingWine;
+    	this.wineService = new WineService(properties);
+		this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
     	try {
-    		existingWine = partnerProduct.getTblWines() != null ? partnerProduct.getTblWines() : this.wineService.getInstance(wine.getName(),
-																						 							  wineValues.get(TblWineFields.GTIN.toString()),
-																						 							  wineValues.get(TblWineFields.BOTTLE_SIZE.toString()),
-																						 							  wineValues.get(TblWineFields.VINTAGE.toString()));
-		} catch (JsonParseException e4) {
-			System.out.println("While trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
-			e4.printStackTrace();
-			return;
-		} catch (JsonMappingException e4) {
-			System.out.println("While trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
-			e4.printStackTrace();
-			return;
-		} catch (IOException e4) {
-			System.out.println("While trying to find the possibly existing wine, the CRUD couldn't be reached or a low level I/O exception arised mapping the response, check the server status");
-			e4.printStackTrace();
-			return;
-		}
-
-    	if(existingWine!=null)
-    		wine = this.wineService.mergeWines(wine, existingWine);
-    	//if the wine didn't exist previously, we will insert it to retrieve its new id and then get the image
-		if(wine.getId()==null)
-		{
+	    	System.out.println(product.getName() + " - " + product.getMerchantName());
+	    	//Get wine values by parsing the website
+	    	Map<String, String> wineValues;
 			try {
-				wine.setId(this.wineService.insertWine(wine));
-			} catch (NumberFormatException e) {
-				System.out.println("Id returned by the CRUD while inserting the wine was not a proper number");
-				e.printStackTrace();
-				return;
-			} catch (JsonProcessingException e) {
-				System.out.println("An exception came up while serialising the wine to JSON before sending it for insertion in the database");
-				e.printStackTrace();
-				return;
-			} catch (IOException e) {
-				System.out.println("While sending the wine to the CRUD for insertion, the CRUD was not reachable");
-				e.printStackTrace();
-				return;
+				//System.out.println("GET MERCHANT PARSING");
+				List<Tblpfmerchanthtmlparsing> merchantParsing = this.getParsingInstructions(product.getMerchantName());
+	
+				if(merchantParsing==null)
+					return null;
+	
+				if(merchantParsing.isEmpty())
+				{
+					System.out.println("No parsing for merchant "+product.getMerchantName());
+					return null;
+				}
+
+				wineValues = this.parseWebsite(Jsoup.parse(this.requestsCreator.createGetRequest(product.getProductURL()), "UTF-8"), merchantParsing);
+	
+			} catch (JsonParseException e4) {
+				System.out.println("While trying to get the merchant by name from the CRUD, response doesn't seem to have a valid JSON format");
+				e4.printStackTrace();
+				return null;
+			} catch (JsonMappingException e4) {
+				System.out.println("While trying to get the merchant by name from the CRUD, response doesn't look like a serialised merchant");
+				e4.printStackTrace();
+				return null;
+			} catch (IOException e4) {
+				System.out.println("Exception occurred while reaching CRUD");
+				e4.printStackTrace();
+				return null;
 			}
-		}
 
-		//System.out.println("SETTING WINE GRAPE VARIETY");
-    	if(!(wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString())==null || wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).trim().isEmpty()))
-    	{
-    		String[] grapeVarieties = wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).replaceAll("\\d+\\s*%", "").split("(\\s*,\\s*|\\s*-\\s*|\\s*and\\s*)");
-        	for(String grapeVariety : grapeVarieties)
-        	{
-        		if(grapeVariety.trim().isEmpty())
-        			continue;
-        		this.setWinesGrapeVarieties(grapeVariety, wine);
-        	}
-    	}
-
-    	//System.out.println("GETTING IMAGE");
-		if(wine.getImageURL()==null /*TODO || blank "no-image" image and this product contains a valid image*/)
-		{
-			String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
-			wineService.getImage(finalImageName, product.getImageURL());			
-
-			wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
-		}
-
-		//Work out the wine type
-		//System.out.println("SETTING WINE TYPE");
-		if(!(wineValues.get(TblWineFields.WINE_TYPE.toString())==null || wineValues.get(TblWineFields.WINE_TYPE.toString()).trim().isEmpty()) && wineValues.get(TblWineFields.WINE_TYPE.toString()).length()<=100)
-			this.setWinesWineType(wine, wineValues.get(TblWineFields.WINE_TYPE.toString()));
-		else if(!product.getProductType().trim().isEmpty())
-			this.setWinesWineType(wine, product.getProductType());
-		else
-			this.setWinesWineType(wine, NoDataFieldsValues.NO_WINETYPE.toString());
-		//System.out.println("WINE TYPE SET");
-
-		if(Thread.currentThread().isInterrupted())
-		{
-			System.out.println("Something went wrong while working out the wine type");
-			return;
-		}
-
-		//System.out.println("UPDATING WINE");
-		//update wine
-		try {
-			this.wineService.updateWine(wine);
-		} catch (JsonProcessingException e2) {
-			System.out.println("An exception came up while serialising the wine to JSON before sending it for update in the database");
-			e2.printStackTrace();
-			return;
-		} catch (IOException e2) {
-			System.out.println("While sending the wine to the CRUD for update, the CRUD was not reachable");
-			e2.printStackTrace();
-			return;
-		}
-
-		//set current product values
-		partnerProduct = this.setPartnerProductsValues(partnerProduct, product, wine);
-		//try {
-		//if we have an id it was already in the db so we update it, otherwise, we insert it
-		if(partnerProduct.getId()==null)
-		{
-			try {
-				partnerProduct.setId(this.partnerProductsService.insertProduct(partnerProduct));
-			} catch (NumberFormatException e) {
-				System.out.println("Id returned by the CRUD while inserting the product was not a proper number");
-				e.printStackTrace();
-				return;
-			} catch (JsonProcessingException e) {
-				System.out.println("An exception came up while serialising the product to JSON before sending it for insertion in the database");
-				e.printStackTrace();
-				return;
-			} catch (IOException e) {
-				System.out.println("While sending the product to the CRUD for insertion, the CRUD was not reachable");
-				e.printStackTrace();
-				return;
+			if(Thread.currentThread().isInterrupted())
+			{
+				System.out.println("Thread has been interrupted by an exception processing the wine "+product.getName());
+				return null;
 			}
-		}
-		else
-		{
+	
+			//Extract wine colour from wine type
+			//System.out.println("Extract wine colour from wine type");
+			if(!wineValues.containsKey(TblWineFields.COLOUR.toString()))
+			{
+				if(product.getProductType().toLowerCase().contains(Colours.RED.toString().toLowerCase()))
+					wineValues.put(TblWineFields.COLOUR.toString(), Colours.RED.toString());
+				else if(product.getProductType().toLowerCase().contains("ros"))
+					wineValues.put(TblWineFields.COLOUR.toString(), Colours.ROSE.toString());
+				else if(product.getProductType().toLowerCase().contains(Colours.WHITE.toString().toLowerCase()))
+					wineValues.put(TblWineFields.COLOUR.toString(), Colours.WHITE.toString());
+			}
+
+			//get possibly existing wine and product
+			//System.out.println("get possibly existing wine and product");
+	    	tblPartnersProducts partnerProduct;
 			try {
-				this.partnerProductsService.updateProduct(partnerProduct);
+				partnerProduct = this.partnersProductsService.getProduct(product.getPartnerProductId(), product.getMerchantProductId());
+			} catch (IOException e1) {
+				System.out.println("While trying to find a possible copy of the product already existing in the db (and retrieve it for edition) the CRUD wasn't reachable or there was a low-level I/O exception, please check the server");
+				e1.printStackTrace();
+				return null;
+			}
+
+			if(partnerProduct.getLastUpdated()!=null && product.getTblpf().getLastImportation()!=null)
+			{
+				if(partnerProduct.getLastUpdated().getTime()>product.getTblpf().getLastImportation().getTime())
+					return null;
+			}
+
+			//if we have the wine in the product, we get it, otherwise, we instanciate a new one by different methods (looking for possibly already existing wine)
+			tblWines wine = new tblWines();
+
+			//set wine values
+	    	wine = this.setWineValues(wine, wineValues, product.getName(), product.getPartnerProductDescription());
+	
+	    	if(Thread.currentThread().isInterrupted())
+	    	{
+	    		System.out.println("An exception caused this thread to be interrupted while generating wine "+product.getName());
+	    		return null;
+	    	}
+	
+	    	//System.out.println("GETTING DATA FROM WINE NAME");
+			//Sanitise the name removing unwanted details and extract those details as possible values  for other fields in the tblWines table
+			try {
+				wine = this.wineService.completeDataFromName(wine, product.getMerchantName());
+			} catch(Exception e) {
+				e.printStackTrace();
+				return null;
+			}
+	
+			tblWines existingWine;
+	    	try {
+	    		existingWine = partnerProduct.getTblWines() != null ? partnerProduct.getTblWines() : this.wineService.getInstance(wine.getName(),
+																							 							  wineValues.get(TblWineFields.GTIN.toString()),
+																							 							  wineValues.get(TblWineFields.BOTTLE_SIZE.toString()),
+																							 							  wineValues.get(TblWineFields.VINTAGE.toString()));
+			} catch (JsonParseException e4) {
+				System.out.println("While trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+				e4.printStackTrace();
+				return null;
+			} catch (JsonMappingException e4) {
+				System.out.println("While trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+				e4.printStackTrace();
+				return null;
+			} catch (IOException e4) {
+				System.out.println("While trying to find the possibly existing wine, the CRUD couldn't be reached or a low level I/O exception arised mapping the response, check the server status");
+				e4.printStackTrace();
+				return null;
+			}
+	
+	    	if(existingWine!=null)
+	    		wine = this.wineService.mergeWines(wine, existingWine);
+	    	//if the wine didn't exist previously, we will insert it to retrieve its new id and then get the image
+			if(wine.getId()==null)
+			{
+				try {
+					wine.setId(this.wineService.insertWine(wine));
+				} catch (NumberFormatException e) {
+					System.out.println("Id returned by the CRUD while inserting the wine was not a proper number");
+					e.printStackTrace();
+					return null;
+				} catch (JsonProcessingException e) {
+					System.out.println("An exception came up while serialising the wine to JSON before sending it for insertion in the database");
+					e.printStackTrace();
+					return null;
+				} catch (IOException e) {
+					System.out.println("While sending the wine to the CRUD for insertion, the CRUD was not reachable");
+					e.printStackTrace();
+					return null;
+				}
+			}
+	
+			//System.out.println("SETTING WINE GRAPE VARIETY");
+	    	if(!(wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString())==null || wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).trim().isEmpty()))
+	    	{
+	    		String[] grapeVarieties = wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).replaceAll("\\d+\\s*%", "").split("(\\s*,\\s*|\\s*-\\s*|\\s*and\\s*)");
+	        	for(String grapeVariety : grapeVarieties)
+	        	{
+	        		if(grapeVariety.trim().isEmpty())
+	        			continue;
+	        		this.setWinesGrapeVarieties(grapeVariety, wine);
+	        	}
+	    	}
+	
+	    	//System.out.println("GETTING IMAGE");
+			if(wine.getImageURL()==null /*TODO || blank "no-image" image and this product contains a valid image*/)
+			{
+				String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
+				wineService.getImage(finalImageName, product.getImageURL());			
+	
+				wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
+			}
+	
+			//Work out the wine type
+			//System.out.println("SETTING WINE TYPE");
+			if(!(wineValues.get(TblWineFields.WINE_TYPE.toString())==null || wineValues.get(TblWineFields.WINE_TYPE.toString()).trim().isEmpty()) && wineValues.get(TblWineFields.WINE_TYPE.toString()).length()<=100)
+				this.setWinesWineType(wine, wineValues.get(TblWineFields.WINE_TYPE.toString()));
+			else if(!product.getProductType().trim().isEmpty())
+				this.setWinesWineType(wine, product.getProductType());
+			else
+				this.setWinesWineType(wine, NoDataFieldsValues.NO_WINETYPE.toString());
+			//System.out.println("WINE TYPE SET");
+	
+			if(Thread.currentThread().isInterrupted())
+			{
+				System.out.println("Something went wrong while working out the wine type");
+				return null;
+			}
+	
+			//System.out.println("UPDATING WINE");
+			//update wine
+			try {
+				this.wineService.updateWine(wine);
 			} catch (JsonProcessingException e2) {
-				System.out.println("An exception came up while serialising the product to JSON before sending it for update in the database");
+				System.out.println("An exception came up while serialising the wine to JSON before sending it for update in the database");
 				e2.printStackTrace();
-				return;
+				return null;
 			} catch (IOException e2) {
-				System.out.println("While sending the product to the CRUD for update, the CRUD was not reachable");
+				System.out.println("While sending the wine to the CRUD for update, the CRUD was not reachable");
 				e2.printStackTrace();
-				return;
+				return null;
 			}
-		}
-		/*} catch(Exception e) {
+	
+			//set current product values
+			partnerProduct = this.setPartnerProductsValues(partnerProduct, product, wine);
+			//try {
+			//if we have an id it was already in the db so we update it, otherwise, we insert it
+			if(partnerProduct.getId()==null)
+			{
+				//System.out.println("INSERTING PRODUCT");
+				try {
+					partnerProduct.setId(this.partnersProductsService.insertProduct(partnerProduct));
+				} catch (NumberFormatException e) {
+					System.out.println("Id returned by the CRUD while inserting the product was not a proper number");
+					e.printStackTrace();
+					return null;
+				} catch (JsonProcessingException e) {
+					System.out.println("An exception came up while serialising the product to JSON before sending it for insertion in the database");
+					e.printStackTrace();
+					return null;
+				} catch (IOException e) {
+					System.out.println("While sending the product to the CRUD for insertion, the CRUD was not reachable");
+					e.printStackTrace();
+					return null;
+				}
+			}
+			else
+			{
+				//System.out.println("UPDATING PRODUCT");
+				try {
+					this.partnersProductsService.updateProduct(partnerProduct);
+				} catch (JsonProcessingException e2) {
+					System.out.println("An exception came up while serialising the product to JSON before sending it for update in the database");
+					e2.printStackTrace();
+					return null;
+				} catch (IOException e2) {
+					System.out.println("While sending the product to the CRUD for update, the CRUD was not reachable");
+					e2.printStackTrace();
+					return null;
+				}
+			}
+			return partnerProduct.getId();
+		} catch(Exception e) {
     		e.printStackTrace();
-    		return;
-    	}*/
+    		return null;
+    	}
     }
 
     /**
@@ -405,7 +409,6 @@ public class ProductsProcessRunnableSynchronous {
     private Map<String, String> parseWebsite(Document htmlDoc, List<Tblpfmerchanthtmlparsing> merchantParsings)
     {
     	Map<String, String> wineValues = new HashMap<String, String>();
-
     	//Extract all elements from html
     	Elements elements = htmlDoc.getAllElements();
     	//for each element, look for keywords to find the remaining values of the wine
@@ -451,9 +454,9 @@ public class ProductsProcessRunnableSynchronous {
     					//System.out.print("PLUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
     					break;
     				case "MinusTag":
-    					i -= merchantParsing.getNumberOfTags();
-    					//System.out.println(elements.get(i).outerHtml());
-    					extractedValue = elements.get(i).ownText().trim();
+    					//System.out.println(elements.get(j).outerHtml());
+    					//we don't modify the value of i to avoid an infinite loop substracting here and summing in the for loop
+    					extractedValue = elements.get(i - merchantParsing.getNumberOfTags()).ownText().trim();
     					//System.out.print("MINUS "+merchantParsing.getNumberOfTags()+" TAGS: '"+extractedValue.trim()+"'");
     					break;
     				case "SpecificTag":
@@ -468,7 +471,7 @@ public class ProductsProcessRunnableSynchronous {
     			//Sanitise and clean values
     			if(merchantParsing.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.BOTTLE_SIZE.toString()))
     			{
-
+    				extractedValue = extractedValue.replaceAll("(?i)\\s*(\\/|,|-)?\\s*\\d+\\s*(x|\\*)\\s*(\\/|,|-)?\\s*", " ").trim();
     				Float temporaryValue = Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(extractedValue));
 
     					if(extractedValue.toLowerCase().contains("m"))
@@ -507,7 +510,6 @@ public class ProductsProcessRunnableSynchronous {
     			wineValues.put(merchantParsing.getTblpfextractioncolumn().getColumnName(), extractedValue);
         	}
     	}
-
     	return wineValues;
     }
 
@@ -519,7 +521,7 @@ public class ProductsProcessRunnableSynchronous {
      * @param description
      * @return
      */
-    private synchronized tblWines setWineValues(tblWines wine, Map<String, String> wineValues, String name, String description)
+    private tblWines setWineValues(tblWines wine, Map<String, String> wineValues, String name, String description)
     {
     	try {
 	    	//Set name
@@ -569,7 +571,7 @@ public class ProductsProcessRunnableSynchronous {
 			if(closure.getId()==null)
 			{
 				closure.setDeleted(false);
-				synchronized(closureLock) {closure.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "closures?action=addClosure", this.mapper.writeValueAsString(closure))));}
+				closure.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "closures?action=addClosure", this.mapper.writeValueAsString(closure))));
 			}
 	
 			wine.setClosure(closure);
@@ -616,7 +618,7 @@ public class ProductsProcessRunnableSynchronous {
 			if(colour.getId()==null)
 			{
 				colour.setDeleted(false);
-				synchronized(colourLock) {colour.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "colours?action=addColour", this.mapper.writeValueAsString(colour))));}
+				colour.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "colours?action=addColour", this.mapper.writeValueAsString(colour))));
 			}
 
 			wine.setColour(colour);
@@ -800,7 +802,7 @@ public class ProductsProcessRunnableSynchronous {
 			if(wine.getCountry().getId()==null)
 			{
 				wine.getCountry().setDeleted(false);
-				synchronized(countryLock) {wine.getCountry().setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "countries?action=addCountry", this.mapper.writeValueAsString(wine.getCountry()))));}
+				wine.getCountry().setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "countries?action=addCountry", this.mapper.writeValueAsString(wine.getCountry()))));
 			}
 
 			//Add country to the region if necessary and then insert or update it 
@@ -812,7 +814,7 @@ public class ProductsProcessRunnableSynchronous {
 				{
 					try {
 						System.out.println(region);
-						synchronized (regionLock) {region.setId(Integer.valueOf(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "regions?action=addRegion", this.mapper.writeValueAsString(region))));}
+						region.setId(Integer.valueOf(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "regions?action=addRegion", this.mapper.writeValueAsString(region))));
 					} catch (JsonProcessingException e) {
 						e.printStackTrace();
 						System.out.println("While sending a request to the CRUD to insert the region, something went wrong serialising it to JSON");
@@ -856,7 +858,7 @@ public class ProductsProcessRunnableSynchronous {
 				{
 					String id;
 					try {
-						synchronized (appellationLock) {id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "appellations?action=addAppellation", this.mapper.writeValueAsString(appellation));}
+						id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "appellations?action=addAppellation", this.mapper.writeValueAsString(appellation));
 					} catch (JsonProcessingException e) {
 						e.printStackTrace();
 						System.out.println("While sending a request to the CRUD to insert the appellation, something went wrong serialising it to JSON");
@@ -905,7 +907,7 @@ public class ProductsProcessRunnableSynchronous {
 				{
 					String id;
 					try {
-						synchronized(wineryLock) {id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "wineries?action=addWinery", this.mapper.writeValueAsString(winery));}
+						id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "wineries?action=addWinery", this.mapper.writeValueAsString(winery));
 					} catch (JsonProcessingException e) {
 						e.printStackTrace();
 						System.out.println("While sending a request to the CRUD to insert the winery, something went wrong serialising it to JSON");
@@ -982,13 +984,19 @@ public class ProductsProcessRunnableSynchronous {
      * @throws JsonMappingException
      * @throws IOException
      */
-    public synchronized void setWinesWineType(tblWines wine, String wineTypeName)
+    public void setWinesWineType(tblWines wine, String wineTypeName)
 	{
-    	wineTypeName = WordUtils.capitalizeFully(StringUtils.stripAccents(wineTypeName));
+    	try {
+			wineTypeName = URLEncoder.encode(WordUtils.capitalizeFully(StringUtils.stripAccents(wineTypeName)), "UTF-8");
+		} catch (UnsupportedEncodingException e2) {
+			System.out.println("Error while encoding wineTypeName using UTF-8");
+			e2.printStackTrace();
+		}
 		//take wine type
 		tblWineTypes wineType;
 		try {
-			String wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+wineTypeName);
+			String wineTypeJson;
+			synchronized(wineTypeLock) {wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+wineTypeName);}
 			wineType = this.mapper.readValue(wineTypeJson, tblWineTypes.class);
 		} catch (JsonParseException e1) {
 			System.out.println("While trying to get the possibly existing wine type by its name from the CRUD, the response doesn't seem to have a valid JSON format");
@@ -1017,7 +1025,7 @@ public class ProductsProcessRunnableSynchronous {
 			String response = null;
 			try {
 				//System.out.println(this.mapper.writeValueAsString(wineType));
-				synchronized (wineTypeLock) {response = this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "winetypes?action=addWineType", this.mapper.writeValueAsString(wineType));}
+				response = this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "winetypes?action=addWineType", this.mapper.writeValueAsString(wineType));
 				System.out.println(response);
 				wineType.setId(Integer.parseInt(response));
 			} catch (NumberFormatException e) {
@@ -1066,7 +1074,7 @@ public class ProductsProcessRunnableSynchronous {
 		winesWineType = new TblWinesWineType(wine, wineType);
 
 		try {
-			synchronized (winesWineTypeLock) {this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblWinesWineTypes?action=addTblWinesWineType", this.mapper.writeValueAsString(winesWineType));}
+			this.requestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblWinesWineTypes?action=addTblWinesWineType", this.mapper.writeValueAsString(winesWineType));
 		} catch (JsonProcessingException e) {
 			System.out.println("An exception came up while serialising the tblWinesWineType to JSON before sending it for insertion in the database");
 			e.printStackTrace();
@@ -1080,13 +1088,18 @@ public class ProductsProcessRunnableSynchronous {
 		}
 	}
 
-    public synchronized void setWinesGrapeVarieties(String grapeVarietyName, tblWines wine)
+    public void setWinesGrapeVarieties(String grapeVarietyName, tblWines wine)
     {
-    	grapeVarietyName = WordUtils.capitalizeFully(StringUtils.stripAccents(grapeVarietyName));
+    	try {
+			grapeVarietyName = URLEncoder.encode(WordUtils.capitalizeFully(StringUtils.stripAccents(grapeVarietyName)), "UTF-8");
+		} catch (UnsupportedEncodingException e1) {
+			System.out.println("Error while encoding grapeVarietyName using UTF-8");
+			e1.printStackTrace();
+		}
 
     	String grpVarietyJson;
 		try {
-			grpVarietyJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "grapevarieties?action=getByName&name="+grapeVarietyName);
+			synchronized(grapeLock) {grpVarietyJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "grapevarieties?action=getByName&name="+grapeVarietyName);}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -1114,7 +1127,7 @@ public class ProductsProcessRunnableSynchronous {
 		{
 			grapeVariety.setName(grapeVarietyName);
 				try {
-					synchronized(grapeLock) {grapeVariety.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "grapevarieties?action=addGrapeVariety", this.mapper.writeValueAsString(grapeVariety))));}
+					grapeVariety.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "grapevarieties?action=addGrapeVariety", this.mapper.writeValueAsString(grapeVariety))));
 				} catch (NumberFormatException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -1135,7 +1148,7 @@ public class ProductsProcessRunnableSynchronous {
 		wineGrapeVariety.setWine(wine);
 
 		try {
-			synchronized(winesGrapeLock) {wineGrapeVariety.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "WinesGrapeVarieties?action=addNew", this.mapper.writeValueAsString(wineGrapeVariety))));}
+			wineGrapeVariety.setId(Integer.parseInt(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "WinesGrapeVarieties?action=addNew", this.mapper.writeValueAsString(wineGrapeVariety))));
 		} catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

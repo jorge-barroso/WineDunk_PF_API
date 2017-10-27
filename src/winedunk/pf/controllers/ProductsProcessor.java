@@ -7,18 +7,14 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
@@ -37,10 +33,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
-import winedunk.pf.services.ProductsProcessRunnable;
+import winedunk.pf.models.tblPartnersProducts;
+import winedunk.pf.runnables.ProductsProcessRunnable;
+import winedunk.pf.services.PartnersProductsService;
 import winedunk.pf.services.RequestsCreator;
+import winedunk.pf.services.WineService;
 
-//TODO set all properties
 /**
  * Servlet implementation class ProductsProcessor
  */
@@ -49,11 +47,10 @@ public class ProductsProcessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private final Properties properties = new Properties();
 	private final Date executionDate = new Date();
-	//private ProductsProcessRunnable runnable;
+	private PartnersProductsService partnersProductsService;
+	private WineService wineService;
 
-	public ProductsProcessor() {
-        super();
-    }
+	public ProductsProcessor() { super(); }
 
 	@Override
 	public void init() {
@@ -68,6 +65,8 @@ public class ProductsProcessor extends HttpServlet {
 			e1.printStackTrace();
 			return;
 		}
+		this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
+		this.wineService = new WineService(properties);
 		//runnable = new ProductsProcessRunnable(properties, executionDate);
 	}
 
@@ -78,17 +77,15 @@ public class ProductsProcessor extends HttpServlet {
 		byte[] requestBytes = new byte[20];
 		request.getInputStream().read(requestBytes, 0, 20);
 
-		//Semaphore semaphore = new Semaphore(10);
-
 		new Thread(new Runnable() {
-			RequestsCreator requestsCreator = new RequestsCreator();
+			final ObjectMapper mapper = new ObjectMapper();
+			final RequestsCreator requestsCreator = new RequestsCreator();
 			@Override
 			public void run() {
-				//final List<Integer> futures = new ArrayList<Integer>();
 				JsonNode requestBody;
 				try {
 					//Create a JsonNode with the parameters sent in the request (presumably id of the product feed which products we want to import) if something is present 
-					requestBody = new String(requestBytes).trim().length()>0 ? new ObjectMapper().readTree(request.getInputStream()) : new ObjectMapper().createObjectNode();
+					requestBody = new String(requestBytes).trim().length()>0 ? this.mapper.readTree(request.getInputStream()) : this.mapper.createObjectNode();
 				} catch (JsonProcessingException e2) {
 					// TODO Auto-generated catch block
 					e2.printStackTrace();
@@ -123,11 +120,7 @@ public class ProductsProcessor extends HttpServlet {
 
 				//Executor to process each product
 				//Executors.newSingleThreadExecutor();
-				//Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1)
-				int queueSize = 1;
-				final BlockingQueue<Runnable> queue = new ArrayBlockingQueue<Runnable>(queueSize);
-				final int cores = Runtime.getRuntime().availableProcessors()-1;
-				final ExecutorService executor = new ThreadPoolExecutor(cores, cores, 0L, TimeUnit.MILLISECONDS, queue);
+				final ExecutorService executor = Executors.newSingleThreadExecutor();//Runtime.getRuntime().availableProcessors()-1);
 				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>(products.size());
 				Integer j = 1;
 				final Set<Tblpf> pfs = new HashSet<Tblpf>();
@@ -139,7 +132,8 @@ public class ProductsProcessor extends HttpServlet {
 					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
 					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()))
 					{
-						if(!requestBody.has("id"))
+						continue;
+						/*if(!requestBody.has("id"))
 						{
 							continue;
 						}
@@ -155,17 +149,10 @@ public class ProductsProcessor extends HttpServlet {
 									return;
 								}
 							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
-						}
+						}*/
 					}
-					
-					while(queue.size()>=queueSize) {}
+
 					futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
-					/*try {
-						futures.add(runnable.call(product));
-					} catch (Exception e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}*/
 				}
 				//close executor after everything has finished
 				try {
@@ -176,22 +163,53 @@ public class ProductsProcessor extends HttpServlet {
 				}
 				executor.shutdown();
 
-				final Map<Integer, Integer> numberOfProductsPerPF = new HashMap<Integer, Integer>();
+				//Get the list of IDs contained in the futures
+				final List<Integer> processedProducts = new ArrayList<Integer>(futures.size());
 				for(Future<Integer> future : futures)
 				{
 					try {
-						Integer productId = future.get();//future;
-						if(numberOfProductsPerPF.containsKey(productId) && productId!=null)
-							numberOfProductsPerPF.put(productId, numberOfProductsPerPF.get(productId)+1);
-						else
-							numberOfProductsPerPF.put(productId, 1);
+						processedProducts.add(future.get());
 					} catch (InterruptedException e) {
-						System.out.println("The process had been interrupted when/while counting the wines imported");
 						e.printStackTrace();
+						return;
 					} catch (ExecutionException e) {
-						System.out.println("An unhandled exception was thrown while processing one of the products");
 						e.printStackTrace();
+						return;
 					}
+				}
+				//Get a list with all the products in the database and set as deleted those that are not present in the list of processed IDs
+				try {
+					List<tblPartnersProducts> partnerProducts = partnersProductsService.getAll();
+					List<Integer> existingWineIds = new ArrayList<Integer>(partnerProducts.size());
+					List<Integer> allWineIds = new ArrayList<Integer>(partnerProducts.size());
+					for(tblPartnersProducts partnerProduct: partnerProducts)
+					{
+						if(!processedProducts.contains(partnerProduct.getId()))
+						{
+							partnerProduct.setDeleted(true);
+							partnersProductsService.delete(partnerProduct.getId());
+						}
+						else
+						{
+							existingWineIds.add(partnerProduct.getTblWines().getId());
+						}
+						allWineIds.add(partnerProduct.getTblWines().getId());
+					}
+
+					for(Integer wineId : allWineIds)
+					{
+						if(!existingWineIds.contains(wineId))
+							wineService.delete(wineId);
+					}
+				} catch (JsonParseException e1) {
+					e1.printStackTrace();
+					return;
+				} catch (JsonMappingException e1) {
+					e1.printStackTrace();
+					return;
+				} catch (IOException e1) {
+					e1.printStackTrace();
+					return;
 				}
 
 				Timestamp time = new Timestamp(new Date().getTime());
@@ -200,12 +218,13 @@ public class ProductsProcessor extends HttpServlet {
 				{
 					pf.setLastImportation(time);
 					try {
-						this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", new ObjectMapper().writeValueAsString(pf));
+						this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf));
 					} catch (IOException e) {
 						System.out.println("There was an exception while reaching the crud to set last importation status");
 						e.printStackTrace();
 					}
 
+					//if we make it here, the process of importing the ProductFeed was successful and thus we can set the status tu OK
 					try {
 						this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+pf.getId());
 					} catch (IOException e) {
@@ -214,6 +233,7 @@ public class ProductsProcessor extends HttpServlet {
 					}
 				}
 
+				//final call to the crud to run the stored procedure that will update the minimum prices
 				try {
 					this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices");
 				} catch (IOException e) {
@@ -245,7 +265,7 @@ public class ProductsProcessor extends HttpServlet {
 		    		body = "{ \"pfId\" : "+id+" }";
 		    	}
 
-				List<Tblpfproduct> products = new ObjectMapper().readValue(new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body), new TypeReference<List<Tblpfproduct>>(){});
+				List<Tblpfproduct> products = this.mapper.readValue(new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body), new TypeReference<List<Tblpfproduct>>(){});
 				return products;
 		    }
 		}).start();
