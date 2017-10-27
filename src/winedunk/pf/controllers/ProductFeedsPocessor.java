@@ -67,7 +67,6 @@ public class ProductFeedsPocessor extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_ACCEPTED);
 
         //if we have an id it's because it was called manually, so we quickly process it
-        System.out.println(1);
 		if(request.getParameter("id")!=null)
 		{
 			String pfJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById&id="+request.getParameter("id"));
@@ -82,9 +81,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		}
 		else
 		{
-			System.out.println(2);
 			doWork();
-			System.out.println("end");
 		}
 	}
 
@@ -102,12 +99,11 @@ public class ProductFeedsPocessor extends HttpServlet {
 			e2.printStackTrace();
 			return;
 		}
-		System.out.println(3);
+
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
 		final ExecutorService pfExecutor = Executors.newSingleThreadExecutor();
 		for(Tblpf pf : allProductFeedsList)
 		{
-			System.out.println(4);
 			executor.submit(new Runnable() {
 				@Override
 				public void run() {

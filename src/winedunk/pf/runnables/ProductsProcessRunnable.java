@@ -113,10 +113,10 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			try {
 				//System.out.println("GET MERCHANT PARSING");
 				List<Tblpfmerchanthtmlparsing> merchantParsing = this.getParsingInstructions(product.getMerchantName());
-	
+
 				if(merchantParsing==null)
 					return null;
-	
+
 				if(merchantParsing.isEmpty())
 				{
 					System.out.println("No parsing for merchant "+product.getMerchantName());
@@ -124,7 +124,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				}
 
 				wineValues = this.parseWebsite(Jsoup.parse(this.requestsCreator.createGetRequest(product.getProductURL()), "UTF-8"), merchantParsing);
-	
+
 			} catch (JsonParseException e4) {
 				System.out.println("While trying to get the merchant by name from the CRUD, response doesn't seem to have a valid JSON format");
 				e4.printStackTrace();
