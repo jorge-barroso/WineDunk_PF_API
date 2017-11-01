@@ -57,9 +57,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	private WineService wineService;
 	private PartnersProductsService partnersProductsService;
 
-	private Object wineTypeLock = new Object();
-	private Object grapeLock = new Object();
-
 	private Integer j;
 
 	/**
@@ -996,7 +993,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		tblWineTypes wineType;
 		try {
 			String wineTypeJson;
-			synchronized(wineTypeLock) {wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+wineTypeName);}
+			wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "WineTypesMapping?action=getByWineType&type="+wineTypeName);
+			if(wineTypeJson.isEmpty())
+				wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+wineTypeName);
 			wineType = this.mapper.readValue(wineTypeJson, tblWineTypes.class);
 		} catch (JsonParseException e1) {
 			System.out.println("While trying to get the possibly existing wine type by its name from the CRUD, the response doesn't seem to have a valid JSON format");
@@ -1099,7 +1098,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 
     	String grpVarietyJson;
 		try {
-			synchronized(grapeLock) {grpVarietyJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "grapevarieties?action=getByName&name="+grapeVarietyName);}
+			grpVarietyJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "grapevarieties?action=getByName&name="+grapeVarietyName);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

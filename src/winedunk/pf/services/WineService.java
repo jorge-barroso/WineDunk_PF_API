@@ -161,7 +161,7 @@ public class WineService {
 
 		if (country==null)
 		{
-			final CountryCode cc = countries.get(countryName)==null ? null : CountryCode.getByCode(countries.get(countryName));
+			final CountryCode cc = countries.get(countryName.trim())==null ? null : CountryCode.getByCode(countries.get(countryName.trim()));
 
 			if(cc==null)
 			{
