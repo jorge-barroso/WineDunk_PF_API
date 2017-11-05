@@ -114,7 +114,6 @@ public class WineService {
 	 */
 	public tblCountries getCountry(String countryName)
 	{
-
 		//System.out.println("Looking for country: "+countryName);
 		if(countryName.contains("Product of"));
 			countryName = countryName.replace("Product of ", "");
@@ -195,10 +194,10 @@ public class WineService {
 	 */
 	public tblRegions getRegion(String regionName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final tblRegions region = this.masterGetRegion("regions?action=getByName&name="+URLEncoder.encode(regionName, "UTF-8"));
+		final tblRegions region = this.masterGetRegion("regions?action=getByName&name="+URLEncoder.encode(regionName.trim(), "UTF-8"));
 
 		if(region.getId()==null)
-			region.setName(regionName);
+			region.setName(regionName.trim());
 
 		return region;
 	}
@@ -230,6 +229,7 @@ public class WineService {
 
 		return regionJson.isEmpty() ? new tblRegions() : this.mapper.readValue(regionJson, tblRegions.class);
 	}
+
 	/**
 	 * 
 	 * @param appellation
@@ -240,11 +240,12 @@ public class WineService {
 	 */
 	public tblAppellations getAppellation(String appellationName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final tblAppellations appellation = this.getAppellation("getByName", "name="+URLEncoder.encode(appellationName, "UTF-8"));
+		final tblAppellations appellation = this.getAppellation("getByName", "name="+URLEncoder.encode(appellationName.trim(), "UTF-8"));
 		if(appellation.getId()==null)
-			appellation.setName(appellationName);
+			appellation.setName(appellationName.trim());
 		return appellation;
 	}
+
 	/**
 	 * 
 	 * @param appellationId
@@ -257,6 +258,7 @@ public class WineService {
 	{
 		return this.getAppellation("getAppellation", "id="+appellationId);
 	}
+
 	/**
 	 * 
 	 * @param action
@@ -283,12 +285,12 @@ public class WineService {
 	 */
 	public tblWineries getWinery(String wineryName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String wineryJson = this.requestsCreator.createGetRequest(apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName, "UTF-8"));
+		final String wineryJson = this.requestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"));
 
 		final tblWineries winery = wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
 
 		if(winery.getId()==null)
-			winery.setName(wineryName);
+			winery.setName(wineryName.trim());
 
 		return winery;
 	}

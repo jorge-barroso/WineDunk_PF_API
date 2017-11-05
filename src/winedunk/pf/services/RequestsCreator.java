@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.security.KeyManagementException;
@@ -22,47 +23,61 @@ import javax.servlet.http.HttpServletResponse;
 
 
 public class RequestsCreator extends EncodeURL {
-	
+
+	/**
+	 * 
+	 * @param urlPath
+	 * @param relURL
+	 * @param content
+	 * @return
+	 * @throws IOException
+	 */
 	public String createPostRequest(String urlPath, String relURL, String content) throws IOException
 	{
 		//Create request
 		String fullURL = urlPath + relURL;
-		//System.out.println("Full URL: "+fullURL);
+		System.out.println("Full URL: "+fullURL);
 		URL url = new URL(fullURL);
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, true, content) : this.startHttpConnection(url, true, content);
 
-		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
-		{
-			url = new URL(con.getHeaderField("Location"));
-			con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
-		}
-		
+		con = this.processRequestResult(con, url);
+
 		return this.readResponse(con);
 	}
 
+	/**
+	 * 
+	 * @param urlPath
+	 * @return
+	 * @throws IOException
+	 */
 	public String createGetRequest(String urlPath) throws IOException
 	{
 		//Create request
-		//System.out.println("Full URL: "+url);
+		System.out.println("Full URL: "+urlPath);
 		URL url = new URL(urlPath);
 		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
 
-		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
-		{
-			url = new URL(con.getHeaderField("Location"));
-			con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
-		}
+		con = this.processRequestResult(con, url);
 
 		//Get result
 		return this.readResponse(con);
 	}
 
+	/**
+	 * 
+	 * @param urlPath
+	 * @param relURL
+	 * @return
+	 * @throws IOException
+	 */
 	public String createGetRequest(String urlPath, String relURL) throws IOException
 	{
 		//Create request
 		String fullURL = new String(urlPath + relURL);
 		return this.createGetRequest(fullURL);
 	}
+
 
 	/**
 	 * 
@@ -169,6 +184,22 @@ public class RequestsCreator extends EncodeURL {
 
 		con.connect();
 
+		return con;
+	}
+
+	private HttpURLConnection processRequestResult(HttpURLConnection con, URL url) throws MalformedURLException, UnsupportedEncodingException, IOException
+	{
+		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
+		{
+			url = new URL(con.getHeaderField("Location"));
+			con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
+		}
+
+		if(con.getResponseCode()/100!=2)
+		{
+			throw new IOException("Error "+con.getResponseCode()+": "+con.getResponseMessage());
+		}
+		
 		return con;
 	}
 

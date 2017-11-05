@@ -191,7 +191,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				e.printStackTrace();
 				return null;
 			}
-	
+
 			tblWines existingWine;
 	    	try {
 	    		existingWine = partnerProduct.getTblWines() != null ? partnerProduct.getTblWines() : this.wineService.getInstance(wine.getName(),
@@ -211,7 +211,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				e4.printStackTrace();
 				return null;
 			}
-	
+
 	    	if(existingWine!=null)
 	    		wine = this.wineService.mergeWines(wine, existingWine);
 	    	//if the wine didn't exist previously, we will insert it to retrieve its new id and then get the image
@@ -233,7 +233,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 					return null;
 				}
 			}
-	
+
 			//System.out.println("SETTING WINE GRAPE VARIETY");
 	    	if(!(wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString())==null || wineValues.get(TblWineFields.WINE_GRAPEVARIETY.toString()).trim().isEmpty()))
 	    	{
@@ -413,6 +413,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	{
     		for(Tblpfmerchanthtmlparsing merchantParsing : merchantParsings)
         	{
+    			System.out.println(merchantParsing.getHtmlTagType()+" - "+elements.get(i).tagName());
+
     			//if we have it already inserted on the values' map and it's not an empty value or a null value, we go for the next key
     			if(!(wineValues.get(merchantParsing.getTblpfextractioncolumn().getColumnName())==null || 
     			   		wineValues.get(merchantParsing.getTblpfextractioncolumn().getColumnName()).trim().isEmpty()))
@@ -430,7 +432,11 @@ public class ProductsProcessRunnable implements Callable<Integer>{
         				continue;
         		}
 
-    			String extractedValue;
+        		//if it's not the tag we were looking for, skip it as well
+        		if(!merchantParsing.getHtmlTagType().equals(elements.get(i).tagName()))
+        			continue;	
+
+        		String extractedValue;
     			//extract value
     			switch(merchantParsing.getTblpfparsingextractionmethod().getMethod())
     			{
@@ -465,10 +471,12 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 						continue;
     			}
 
+    			if(merchantParsing.getTblpfextractioncolumn().getReplaceRegularExpression()!=null)
+    				extractedValue = extractedValue.replaceAll(merchantParsing.getTblpfextractioncolumn().getReplaceRegularExpression(), " ").trim();
+
     			//Sanitise and clean values
     			if(merchantParsing.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.BOTTLE_SIZE.toString()))
     			{
-    				extractedValue = extractedValue.replaceAll("(?i)\\s*(\\/|,|-)?\\s*\\d+\\s*(x|\\*)\\s*(\\/|,|-)?\\s*", " ").trim();
     				Float temporaryValue = Float.parseFloat(CharMatcher.digit().or(CharMatcher.is('.')).retainFrom(extractedValue));
 
     					if(extractedValue.toLowerCase().contains("m"))
@@ -492,7 +500,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     				{
     					String[] values = extractedValue.split(",");
     					extractedValue = values[0];
-    					
+
     					if(!wineValues.containsKey(TblWineFields.COUNTRY.toString()))
     						wineValues.put(TblWineFields.COUNTRY.toString(), values[1]);
     				}
@@ -520,6 +528,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      */
     private tblWines setWineValues(tblWines wine, Map<String, String> wineValues, String name, String description)
     {
+    	description = description.replaceAll("\\r | \\n", ". ");
+
     	try {
 	    	//Set name
 			wine.setName(StringEscapeUtils.unescapeHtml4(name));
@@ -902,6 +912,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	
 				if(winery.getId()==null)
 				{
+					System.out.println(winery);
 					String id;
 					try {
 						id = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "wineries?action=addWinery", this.mapper.writeValueAsString(winery));
@@ -916,7 +927,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 						Thread.currentThread().interrupt();
 						return null;
 					}
-					
+
 					winery.setId(Integer.valueOf(id));
 				}
 				else
@@ -983,19 +994,22 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      */
     public void setWinesWineType(tblWines wine, String wineTypeName)
 	{
+    	wineTypeName = WordUtils.capitalizeFully(StringUtils.stripAccents(wineTypeName));
+    	String encodedWineTypeName;
     	try {
-			wineTypeName = URLEncoder.encode(WordUtils.capitalizeFully(StringUtils.stripAccents(wineTypeName)), "UTF-8");
+			encodedWineTypeName = URLEncoder.encode(wineTypeName, "UTF-8");
 		} catch (UnsupportedEncodingException e2) {
 			System.out.println("Error while encoding wineTypeName using UTF-8");
 			e2.printStackTrace();
+			return;
 		}
 		//take wine type
 		tblWineTypes wineType;
 		try {
 			String wineTypeJson;
-			wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "WineTypesMapping?action=getByWineType&type="+wineTypeName);
+			wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "WineTypesMapping?action=getByWineType&type="+encodedWineTypeName);
 			if(wineTypeJson.isEmpty())
-				wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+wineTypeName);
+				wineTypeJson = this.requestsCreator.createGetRequest(this.properties.getProperty("crud.url"), "winetypes?action=getByName&name="+encodedWineTypeName);
 			wineType = this.mapper.readValue(wineTypeJson, tblWineTypes.class);
 		} catch (JsonParseException e1) {
 			System.out.println("While trying to get the possibly existing wine type by its name from the CRUD, the response doesn't seem to have a valid JSON format");

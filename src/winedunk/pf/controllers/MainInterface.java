@@ -1,13 +1,8 @@
 package winedunk.pf.controllers;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -22,7 +17,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import winedunk.pf.models.Tblpf;
-import winedunk.pf.models.tblPartners;
 import winedunk.pf.services.RequestsCreator;
 
 
@@ -62,8 +56,12 @@ public class MainInterface extends HttpServlet {
 	    //Map response to a List of Tblpf objects
 	    List<Tblpf> productFeeds = productFeedsJson.isEmpty() ? new ArrayList<Tblpf>() : mapper.readValue(productFeedsJson, new TypeReference<List<Tblpf>>(){});
 
-	    String partnersListJson = requestsCreator.createGetRequest(properties.getProperty("crud.url"), "partners?action=getPartners");
-	    List<tblPartners> tblPartners = partnersListJson.isEmpty() ? new ArrayList<tblPartners>() : mapper.readValue(partnersListJson, new TypeReference<List<tblPartners>>(){});
+	    /**
+	     * TODO uncomment
+	     * 
+	     *  String partnersListJson = requestsCreator.createGetRequest(properties.getProperty("crud.url"), "partners?action=getPartners");
+	    	List<tblPartners> tblPartners = partnersListJson.isEmpty() ? new ArrayList<tblPartners>() : mapper.readValue(partnersListJson, new TypeReference<List<tblPartners>>(){});
+	     */
 
 
 		//save for the JSTL template
