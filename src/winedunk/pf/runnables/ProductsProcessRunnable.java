@@ -433,8 +433,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
         		}
 
         		//if it's not the tag we were looking for, skip it as well
-        		if(!merchantParsing.getHtmlTagType().equals(elements.get(i).tagName()))
-        			continue;	
+        		if(!(merchantParsing.getHtmlTagType()!=null && merchantParsing.getHtmlTagType().equals(elements.get(i).tagName())))
+        			continue;
 
         		String extractedValue;
     			//extract value
