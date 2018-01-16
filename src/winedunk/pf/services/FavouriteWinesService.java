@@ -22,7 +22,6 @@ public class FavouriteWinesService {
 	public void setUrlPath(String urlPath) { this.urlPath = urlPath; }
 
 	JsonChecker jsonChecker = new JsonChecker();
-	RequestsCreator requestCreator = new RequestsCreator();
 	
 	/*
 	 * This class manages all the actions that need to be taken with the favourite wines.
@@ -41,7 +40,7 @@ public class FavouriteWinesService {
 				+ " \"addedTimestamp\" : \"" + new Date().getTime()
 				+ "\" }";
 		
-		String response = requestCreator.createPostRequest(urlPath, relUrl, content);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, content, null);
 		if(response == null) { return false; }
 		else if(response.equals("True")) { return true; }
 		
@@ -58,7 +57,7 @@ public class FavouriteWinesService {
 		relUrl = "userFavouriteWines?action=getFavouriteWineForUser";
 		String content = userId + "," + wineId;
 		
-		String response = requestCreator.createPostRequest(urlPath, relUrl, content);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, content, null);
 		if(response == null) { return false; }
 		
 		ObjectMapper mapper = new ObjectMapper();
@@ -73,7 +72,7 @@ public class FavouriteWinesService {
 	   	Integer wineToBeDeletedId = wine.getId();
 	   	
 	   	relUrl = "userFavouriteWines?action=deleteUserFavouriteWine";
-	   	String deleteResponse = requestCreator.createPostRequest(urlPath, relUrl, wineToBeDeletedId.toString());
+	   	String deleteResponse = RequestsCreator.createPostRequest(urlPath, relUrl, wineToBeDeletedId.toString(), null);
 	   	
 	   	if(deleteResponse == null) { return false; }
 	   	return true;

@@ -91,7 +91,6 @@ public class LoginService {
 	private viewUsers user = new viewUsers();
 	public viewUsers getUser() { return user; }
 	
-	RequestsCreator requestCreator = new RequestsCreator();
 	JsonChecker jsonChecker = new JsonChecker();
 	GeneralService generalService = new GeneralService();
 	
@@ -118,7 +117,7 @@ public class LoginService {
 		
 		//Send request to CRUD
 		String relURL = "users?action=getUserByEmail";
-		String wholeResult = requestCreator.createPostRequest(urlPath, relURL, email);
+		String wholeResult = RequestsCreator.createPostRequest(urlPath, relURL, email, null);
 		
 		//Convert the result to a list of fields
 		if(wholeResult == null) { return false; }
@@ -179,7 +178,7 @@ public class LoginService {
 		//Send request and get result
 		
 		String relURL = "users?action=addUser";
-		Integer responseUserId = Integer.parseInt(requestCreator.createPostRequest(urlPath, relURL, userJsonString));
+		Integer responseUserId = Integer.parseInt(RequestsCreator.createPostRequest(urlPath, relURL, userJsonString, null));
 		
 		//Check if user was created
 		if(responseUserId <= 0) { registerErrors.add("userNotCreated"); return false; }

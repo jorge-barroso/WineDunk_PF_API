@@ -32,9 +32,10 @@ public class ProfileService {
 	private String userString;
 	public String getUserString() { return userString; }
 	public void setUserString(String userString) { this.userString = userString; }
-	
-	public RequestsCreator getRequestCreator() { return requestCreator; }
-	public void setRequestCreator(RequestsCreator requestCreator) { this.requestCreator = requestCreator; }
+
+	private RequestsCreator requestsCreator;
+	public RequestsCreator getRequestCreator() { return requestsCreator; }
+	public void setRequestCreator(RequestsCreator RequestsCreator) { this.requestsCreator = RequestsCreator; }
 
 	private Integer userId;
 	public Integer getUserId() { return userId; }
@@ -49,14 +50,13 @@ public class ProfileService {
 	public void setPreviousPassword(String previousPassword) { this.previousPassword = previousPassword; }
 	
 	public ProfileService() {}
-	RequestsCreator requestCreator = new RequestsCreator();
 	GeneralService generalService = new GeneralService();
 	
 	public tblUsers loadUserDetails() throws IOException 
 	{ 
 		relUrl = "users?action=getUser&id=" + userId;
 		
-		String response = requestCreator.createGetRequest(urlPath, relUrl);
+		String response = RequestsCreator.createGetRequest(urlPath, relUrl, null);
 		
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -73,7 +73,7 @@ public class ProfileService {
 		try
 		{
 			relUrl = "userFavouriteWines?action=getFavouriteWinesForUser";
-			String response = requestCreator.createPostRequest(urlPath, relUrl, userId.toString());
+			String response = RequestsCreator.createPostRequest(urlPath, relUrl, userId.toString(), null);
 			
 			ObjectMapper mapper = new ObjectMapper();
 			mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -110,7 +110,7 @@ public class ProfileService {
 		   	{
 		   		relUrl = "winesView?action=getWine&id=";
 		   		String fullRelUrl = relUrl += favWine.getNumericWineId();
-		   		String actualWineString = requestCreator.createGetRequest(urlPath, fullRelUrl);
+		   		String actualWineString = RequestsCreator.createGetRequest(urlPath, fullRelUrl, null);
 		   		
 		   		viewWines actualWine = mapper.readValue(actualWineString, viewWines.class);
 		   		actualWines.add(actualWine);
@@ -125,7 +125,7 @@ public class ProfileService {
 		try 
 		{
 			relUrl = "?action=getUserById&id=";
-			this.setUserString(requestCreator.createGetRequest(urlPath, relUrl));
+			this.setUserString(RequestsCreator.createGetRequest(urlPath, relUrl, null));
 		} catch (IOException e) { e.printStackTrace(); }
 	}
 	
@@ -136,13 +136,13 @@ public class ProfileService {
 		catch (NoSuchAlgorithmException e) { e.printStackTrace(); }
 		
 		relUrl = "users?action=getAuth&id=" + userId;
-		String storedPassword = requestCreator.createGetRequest(urlPath, relUrl);
+		String storedPassword = RequestsCreator.createGetRequest(urlPath, relUrl, null);
 		
 		if(!storedPassword.equals(previousPassword)) { return false; }
 		
 		relUrl = "users?action=changePassword";
 		String content = userId + "," + newPassword;
-		String response = requestCreator.createPostRequest(urlPath, relUrl, content);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, content, null);
 		
 		if(response.equalsIgnoreCase("true")) { return true; }
 		return false;

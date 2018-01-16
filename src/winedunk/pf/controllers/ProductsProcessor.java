@@ -79,7 +79,6 @@ public class ProductsProcessor extends HttpServlet {
 
 		new Thread(new Runnable() {
 			final ObjectMapper mapper = new ObjectMapper();
-			final RequestsCreator requestsCreator = new RequestsCreator();
 			@Override
 			public void run() {
 				JsonNode requestBody;
@@ -130,7 +129,7 @@ public class ProductsProcessor extends HttpServlet {
 				{
 					pfs.add(product.getTblpf());
 					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
-					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()))
+					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING))
 					{
 						continue;
 						/*if(!requestBody.has("id"))
@@ -148,7 +147,7 @@ public class ProductsProcessor extends HttpServlet {
 									e.printStackTrace();
 									return;
 								}
-							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING.toString()));
+							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING));
 						}*/
 					}
 
@@ -218,7 +217,7 @@ public class ProductsProcessor extends HttpServlet {
 				{
 					pf.setLastImportation(time);
 					try {
-						this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf));
+						RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf), null);
 					} catch (IOException e) {
 						System.out.println("There was an exception while reaching the crud to set last importation status");
 						e.printStackTrace();
@@ -226,7 +225,7 @@ public class ProductsProcessor extends HttpServlet {
 
 					//if we make it here, the process of importing the ProductFeed was successful and thus we can set the status tu OK
 					try {
-						this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+pf.getId());
+						RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+pf.getId(), null);
 					} catch (IOException e) {
 						System.out.println("There was an exception while reaching the crud to set last importation status");
 						e.printStackTrace();
@@ -235,7 +234,7 @@ public class ProductsProcessor extends HttpServlet {
 
 				//final call to the crud to run the stored procedure that will update the minimum prices
 				try {
-					this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices");
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices", null);
 				} catch (IOException e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
 					e.printStackTrace();
@@ -265,7 +264,7 @@ public class ProductsProcessor extends HttpServlet {
 		    		body = "{ \"pfId\" : "+id+" }";
 		    	}
 
-				List<Tblpfproduct> products = this.mapper.readValue(new RequestsCreator().createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body), new TypeReference<List<Tblpfproduct>>(){});
+				List<Tblpfproduct> products = this.mapper.readValue(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body, null), new TypeReference<List<Tblpfproduct>>(){});
 				return products;
 		    }
 		}).start();

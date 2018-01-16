@@ -20,7 +20,6 @@ public class ResultsService {
 	public String getUrlPath() { return urlPath; }
 	public void setUrlPath(String urlPath) { this.urlPath = urlPath; }
 	
-	RequestsCreator requestCreator = new RequestsCreator();
 	public ResultsService() {}
     
     public Map<Integer, String> GetFilters(String action)
@@ -28,7 +27,7 @@ public class ResultsService {
     	try
     	{
     		String url = action.toLowerCase() + "?action=get" + action;
-    		String responseString = requestCreator.createGetRequest(urlPath, url);
+    		String responseString = RequestsCreator.createGetRequest(urlPath, url, null);
     		
     		try
     		{
@@ -82,7 +81,7 @@ public class ResultsService {
      public List<viewWines> getWines(String urlParameters) throws IOException
     {
     	 String relURL = "winesView?action=getWinesWithQuery" + urlParameters;
-    	 String responseString = requestCreator.createGetRequest(urlPath, relURL);
+    	 String responseString = RequestsCreator.createGetRequest(urlPath, relURL, null);
     	 ObjectMapper mapper = new ObjectMapper();
     	 
     	 JsonNode responseJson = mapper.readTree(responseString);
@@ -104,7 +103,7 @@ public class ResultsService {
     public Integer getCountOfPages(String urlParameters) throws IOException
     {
     	String relURL = "winesView?action=getCountWithQuery" + urlParameters;
-    	Integer amountOfPages = Integer.parseInt(requestCreator.createGetRequest(urlPath, relURL));
+    	Integer amountOfPages = Integer.parseInt(RequestsCreator.createGetRequest(urlPath, relURL, null));
     	
     	if(amountOfPages == null || amountOfPages < 0) { return null; }
     	

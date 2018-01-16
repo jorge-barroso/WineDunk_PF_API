@@ -1,19 +1,20 @@
 package winedunk.pf.services;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.time.LocalDate;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 
@@ -38,7 +39,6 @@ public class WineService {
 	private String apiUrl;
 	private Properties properties;
 	private final FTPClient ftp = new FTPClient();
-	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
 	private final Map<String, String> countries = new HashMap<String, String>();
 	private final String patternsOpening = "(?i)\\s*(\\/|,|-)?\\s*";
@@ -46,7 +46,7 @@ public class WineService {
 	private final Pattern[] vintagePatterns = new Pattern[] {Pattern.compile(patternsOpening+"[0-9]{4}"+patternsClosing), Pattern.compile(patternsOpening+"\\d+\\s*(years|year|yrs|yr)"+patternsClosing), Pattern.compile(patternsOpening+"(,|\\s+)(\')?[0-9]{2}(s|'s)?(\\s+|$)"+patternsClosing)};
 	private final Pattern[] bottleSizePatterns = new Pattern[] {Pattern.compile(patternsOpening+"\\d+(\\.\\d+)?cl\\s*(bottles|bottle)?"+patternsClosing), Pattern.compile(patternsOpening+"\\d+(\\.\\d+)?ml\\s*(bottles|bottle)?"+patternsClosing),  Pattern.compile(patternsOpening+"\\d+(\\.\\d+)?\\s*(ltr|lt|litre|l)\\s*(bottles|bottle)?"+patternsClosing), Pattern.compile(patternsOpening+"(\\()?half\\s*(-)?\\s*bottle(\\))?"+patternsClosing)};
 	private final Pattern alcoholVolumePattern = Pattern.compile(patternsOpening+"\\d+(\\.\\d)?\\s*(abv|%)"+patternsClosing);
-	private final List<String> forbiddenFormats; 
+
 	/**
 	 * 
 	 * @param ftp
@@ -63,8 +63,6 @@ public class WineService {
 		this.properties = properties;
 
 		this.apiUrl = this.properties.getProperty("crud.url");
-
-		this.forbiddenFormats = Arrays.asList(".com", ".co.uk", ".net");
 	}
 
 	/**
@@ -85,7 +83,7 @@ public class WineService {
 
 			if(gtin!=null)
 			{
-				wine = this.mapper.readValue(this.requestsCreator.createGetRequest(this.apiUrl, "wines?action=getByGtin&gtin="+gtin), tblWines.class);
+				wine = this.mapper.readValue(RequestsCreator.createGetRequest(this.apiUrl, "wines?action=getByGtin&gtin="+gtin, null), tblWines.class);
 			}
 			else
 			{
@@ -98,8 +96,8 @@ public class WineService {
 										 + "&name="+URLEncoder.encode(name, "UTF-8")
 										 + "&bottleSize="+bottleSize
 										 + "&vintage="+vintage;
-				wine = this.mapper.readValue(this.requestsCreator.createGetRequest(this.apiUrl, "wines?"+requestParameters), tblWines.class);
-			}			
+				wine = this.mapper.readValue(RequestsCreator.createGetRequest(this.apiUrl, "wines?"+requestParameters, null), tblWines.class);
+			}
 		} catch(NullPointerException e) {
 			e.printStackTrace();
 			return null;
@@ -115,61 +113,53 @@ public class WineService {
 	public tblCountries getCountry(String countryName)
 	{
 		//System.out.println("Looking for country: "+countryName);
+		countryName = countryName.trim();
 		if(countryName.contains("Product of"));
 			countryName = countryName.replace("Product of ", "");
-
-		TblPFCountryNameMappingTable countryNameMapping;
-		try {
-			final String countryNameMappingJson = this.requestsCreator.createGetRequest(apiUrl, "TblPFCountryNameMappingTableController?action=getByMerchantName&name="+URLEncoder.encode(countryName.trim(), "UTF-8"));
-			countryNameMapping = countryNameMappingJson.isEmpty() ? null : this.mapper.readValue(countryNameMappingJson, TblPFCountryNameMappingTable.class);
-		} catch (JsonParseException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return null;
-		} catch (JsonMappingException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return null;
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-			return null;
-		}
-
-		//If the current wrong name was mapped to a proper name we replace that wrong name with the good one
-		if(countryNameMapping!=null)
-			countryName = countryNameMapping.getTblCountries().getName();
+			
+			try {
+				final String countryNameMappingJson = RequestsCreator.createGetRequest(apiUrl, "TblPFCountryNameMappingTableController?action=getByMerchantName&name="+URLEncoder.encode(countryName, "UTF-8"), null);
+				//If the current wrong name was mapped to a proper name we replace that wrong name with the good one
+				if(!StringUtils.isBlank(countryNameMappingJson))
+					countryName = this.mapper.readValue(countryNameMappingJson, TblPFCountryNameMappingTable.class).getTblCountries().getName();
+			} catch (UnsupportedEncodingException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
+			}
 
 		tblCountries country;
 		try {
-			final String countryJson = this.requestsCreator.createGetRequest(this.apiUrl, "countries?action=getByName&name="+URLEncoder.encode(countryName, "UTF-8"));
-			country = countryJson.isEmpty() ? null : this.mapper.readValue(countryJson, tblCountries.class);
+			final String countryJson = RequestsCreator.createGetRequest(this.apiUrl, "countries?action=getByName&name="+URLEncoder.encode(countryName, "UTF-8"), null);
+			country = this.mapper.readValue(countryJson, tblCountries.class);
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
+			return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 		} catch (JsonMappingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
+			return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return null;
+			return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 		}
 
 		if (country==null)
 		{
-			final CountryCode cc = countries.get(countryName.trim())==null ? null : CountryCode.getByCode(countries.get(countryName.trim()));
+			final CountryCode cc = countries.get(countryName)==null ? null : CountryCode.getByCode(countries.get(countryName));
 
 			if(cc==null)
 			{
-				if(!countryName.equals(NoDataFieldsValues.NO_COUNTRY.toString()))
-				{
+				if(!countryName.equals(NoDataFieldsValues.NO_COUNTRY))
 					System.out.println("The name of the country "+countryName+" doesn't follow the standards so it couldn't be found");
-				}
 
-				country = this.getCountry(NoDataFieldsValues.NO_COUNTRY.toString());
+				country = this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 			}
 			else
 			{
@@ -225,9 +215,9 @@ public class WineService {
 	 */
 	private tblRegions masterGetRegion(String apiCall) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String regionJson = this.requestsCreator.createGetRequest(this.apiUrl, apiCall);
+		final String regionJson = RequestsCreator.createGetRequest(this.apiUrl, apiCall, null);
 
-		return regionJson.isEmpty() ? new tblRegions() : this.mapper.readValue(regionJson, tblRegions.class);
+		return this.mapper.readValue(regionJson, tblRegions.class);
 	}
 
 	/**
@@ -270,9 +260,9 @@ public class WineService {
 	 */
 	private tblAppellations getAppellation(String action, String parameters) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String appellationJson = this.requestsCreator.createGetRequest(apiUrl, "appellations?action="+action+"&"+parameters);
+		final String appellationJson = RequestsCreator.createGetRequest(apiUrl, "appellations?action="+action+"&"+parameters, null);
 
-		return appellationJson.isEmpty() ? new tblAppellations() : this.mapper.readValue(appellationJson, tblAppellations.class);
+		return this.mapper.readValue(appellationJson, tblAppellations.class);
 	}
 
 	/**
@@ -285,9 +275,9 @@ public class WineService {
 	 */
 	public tblWineries getWinery(String wineryName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String wineryJson = this.requestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"));
+		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
 
-		final tblWineries winery = wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
+		final tblWineries winery = this.mapper.readValue(wineryJson, tblWineries.class);
 
 		if(winery.getId()==null)
 			winery.setName(wineryName.trim());
@@ -305,9 +295,9 @@ public class WineService {
 	 */
 	public tblClosures getClosure(String closureName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String closureJson = this.requestsCreator.createGetRequest(apiUrl, "closures?action=getByName&name="+URLEncoder.encode(closureName, "UTF-8"));
+		final String closureJson = RequestsCreator.createGetRequest(apiUrl, "closures?action=getByName&name="+URLEncoder.encode(closureName, "UTF-8"), null);
 
-		final tblClosures closure = closureJson.isEmpty() ? new tblClosures() : this.mapper.readValue(closureJson, tblClosures.class);
+		final tblClosures closure = this.mapper.readValue(closureJson, tblClosures.class);
 
 		if(closure.getId()==null)
 			closure.setName(closureName);
@@ -325,9 +315,9 @@ public class WineService {
 	 */
 	public tblColours getColour(String colourName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String colourJson = this.requestsCreator.createGetRequest(apiUrl, "colours?action=getByName&name="+URLEncoder.encode(colourName, "UTF-8"));
+		final String colourJson = RequestsCreator.createGetRequest(apiUrl, "colours?action=getByName&name="+URLEncoder.encode(colourName, "UTF-8"), null);
 
-		final tblColours colour = colourJson.isEmpty() ? new tblColours() : this.mapper.readValue(colourJson, tblColours.class);
+		final tblColours colour = this.mapper.readValue(colourJson, tblColours.class);
 
 		if(colour.getId()==null)
 			colour.setName(colourName);
@@ -391,11 +381,11 @@ public class WineService {
 		 * */
 		for(int i=0;i<this.bottleSizePatterns.length;i++)
 		{
-			//System.out.println(bottleSizePatterns[i].toString());
 			Matcher bottleSizeMatcher = bottleSizePatterns[i].matcher(wineName);
 			if(bottleSizeMatcher.find())
 			{
 				final String data = wineName.substring(bottleSizeMatcher.start(), bottleSizeMatcher.end());
+				wine.setName(wine.getName().replace(data, ""));
 				Float bottleSize = i!=3 ? Float.parseFloat(digitMatcher.or(CharMatcher.is('.')).retainFrom(data)) : 37.50f;
 
 				//if we haven't set the size of the bottle yet and we have found it in the name, we add it
@@ -426,7 +416,6 @@ public class WineService {
 		{
 			String data = wineName.substring(alcoholMatcher.start(), alcoholMatcher.end());
 			wineName = wineName.replace(data, " ").trim();
-			System.out.println("5 "+wineName);
 
 			if(wine.getAbv()==null)
 				wine.setAbv(Float.parseFloat(digitMatcher.or(CharMatcher.is('.')).retainFrom(data)));
@@ -453,29 +442,12 @@ public class WineService {
 		return wine;
 	}
 
-	public String getImageName(String imageUrl	, Integer wineId)
+	public String getImageName(String imageUrl, Integer wineId) throws IOException
 	{
-		final String imageLink = this.escape(imageUrl.replaceFirst("https", "http").replaceAll(Pattern.quote(" "), "+"), "'");
-		final Integer fileFormatStart = imageLink.lastIndexOf(".")+1;
-		Integer fileFormatEnd = imageLink.indexOf('?', fileFormatStart);
-		if(fileFormatEnd<0)
-			fileFormatEnd = imageLink.indexOf('&', fileFormatStart);
-
-		String format;
-		if(fileFormatEnd<0)
-			format = imageLink.substring(fileFormatStart);
-		else
-			format = imageLink.substring(fileFormatStart, fileFormatEnd);
-
-		for(String forbiddenFormat : forbiddenFormats)
-		{
-			if(format.contains(forbiddenFormat))
-			{
-				format = ".jpeg";
-				break;
-			}
-		}
-
+		URL url = new URL(imageUrl);
+		URLConnection uc = url.openConnection();
+		String contentType = uc.getContentType();
+		String format = contentType.substring(contentType.indexOf('/')+1);
 		return wineId+"."+format;
 	}
 
@@ -545,32 +517,32 @@ public class WineService {
 
 	public synchronized Integer insertWine(tblWines wine) throws NumberFormatException, JsonProcessingException, IOException
 	{
-		String response = requestsCreator.createPostRequest(this.apiUrl, "wines?action=addWine", this.mapper.writeValueAsString(wine));
+		String response = RequestsCreator.createPostRequest(this.apiUrl, "wines?action=addWine", this.mapper.writeValueAsString(wine), null);
 		return Integer.valueOf(response);
 	}
 
 	public Boolean updateWine(tblWines wine) throws JsonProcessingException, IOException
 	{
-		String response = requestsCreator.createPostRequest(apiUrl, "wines?action=updateWine", new ObjectMapper().writeValueAsString(wine));
+		String response = RequestsCreator.createPostRequest(apiUrl, "wines?action=updateWine", new ObjectMapper().writeValueAsString(wine), null);
 		return Boolean.valueOf(response);
 	}
 
 	public Boolean delete(Integer wineId) {
 		try {
-			return Boolean.parseBoolean(requestsCreator.createPostRequest(apiUrl, "wines?action=deleteWine", "{\"id\" : "+wineId+"}"));
+			return Boolean.parseBoolean(RequestsCreator.createPostRequest(apiUrl, "wines?action=deleteWine", "{\"id\" : "+wineId+"}", null));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;
 		}
 	}
 
-	private String escape(String text, String character)
+	/*private String escape(String text, String character)
 	{
 		if(text.contains(character))
 			text = text.replace(character, "\\"+character);
 
 		return text;
-	}
+	}*/
 
 	public tblWines mergeWines(tblWines wine, tblWines existingWine) {
 		if(existingWine.getAbv()==null && wine.getAbv()!=null)

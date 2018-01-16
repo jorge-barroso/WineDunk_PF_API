@@ -48,18 +48,17 @@ public class MainInterface extends HttpServlet {
 			return;
 		}**/
 
-		RequestsCreator requestsCreator = new RequestsCreator();
 		ObjectMapper mapper = new ObjectMapper();
 
 		//Request full ProductFeeds list
-		String productFeedsJson = requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getAllProductFeeds");
+		String productFeedsJson = RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds", "action=getAllProductFeeds", null);
 	    //Map response to a List of Tblpf objects
 	    List<Tblpf> productFeeds = productFeedsJson.isEmpty() ? new ArrayList<Tblpf>() : mapper.readValue(productFeedsJson, new TypeReference<List<Tblpf>>(){});
 
 	    /**
 	     * TODO uncomment
 	     * 
-	     *  String partnersListJson = requestsCreator.createGetRequest(properties.getProperty("crud.url"), "partners?action=getPartners");
+	     *  String partnersListJson = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "partners?action=getPartners");
 	    	List<tblPartners> tblPartners = partnersListJson.isEmpty() ? new ArrayList<tblPartners>() : mapper.readValue(partnersListJson, new TypeReference<List<tblPartners>>(){});
 	     */
 

@@ -14,7 +14,6 @@ import winedunk.pf.models.tblPartnersProducts;
 
 public class PartnersProductsService {
 
-	private final RequestsCreator requestsCreator;
     private final ObjectMapper mapper;
     private final String servletUrl;
     String apiUrl;
@@ -23,7 +22,6 @@ public class PartnersProductsService {
      * 
      */
     public PartnersProductsService(String apiUrl) {
-    	this.requestsCreator = new RequestsCreator();
         this.mapper = new ObjectMapper();
         this.servletUrl = "partnersProductss";
         this.apiUrl = apiUrl;
@@ -40,7 +38,7 @@ public class PartnersProductsService {
      * @throws IOException
      */
     public List<tblPartnersProducts> getAll() throws JsonParseException, JsonMappingException, IOException {
-    	return this.mapper.readValue(this.requestsCreator.createGetRequest(apiUrl, servletUrl+"?action=getPartnersProductss"), new TypeReference<List<tblPartnersProducts>>(){});
+    	return this.mapper.readValue(RequestsCreator.createGetRequest(apiUrl, servletUrl+"?action=getPartnersProductss", null), new TypeReference<List<tblPartnersProducts>>(){});
     }
 
     /**
@@ -53,7 +51,7 @@ public class PartnersProductsService {
      */
     public Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
     {
-    	String response = this.requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product));
+    	String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product), null);
     	return Integer.parseInt(response);
     }
 
@@ -66,7 +64,7 @@ public class PartnersProductsService {
      */
     public Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
     {
-    	String response = requestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", mapper.writeValueAsString(product));
+    	String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", mapper.writeValueAsString(product), null);
     	return Boolean.valueOf(response);
     }
 
@@ -85,7 +83,7 @@ public class PartnersProductsService {
     							 + "&partnerProductId="+partnerProductId
  		 						 + "&merchantProductId="+merchantProductId;
     	
-    	String productString = requestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters);
+    	String productString = RequestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters, null);
     	
     	if(productString.isEmpty())
     		return new tblPartnersProducts();
@@ -96,7 +94,7 @@ public class PartnersProductsService {
     public Boolean delete(Integer id)
     {
     	try {
-			return Boolean.parseBoolean(this.requestsCreator.createPostRequest(apiUrl, servletUrl+"action=delete", "{\"id\" : "+id+"}"));
+			return Boolean.parseBoolean(RequestsCreator.createPostRequest(apiUrl, servletUrl+"action=delete", "{\"id\" : "+id+"}", null));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

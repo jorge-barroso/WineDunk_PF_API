@@ -26,12 +26,11 @@ public class UserPhoneNumbersService {
 	public Integer getUserId() { return userId; }
 	public void setUserId(Integer userId) { this.userId = userId; }
 	
-	RequestsCreator requestCreator = new RequestsCreator();
 	
 	public List<userPhoneNumbers> loadPhoneNumbers() throws IOException
 	{
 		relUrl = "userPhoneNumbers?action=getUserPhoneNumbersForUser";
-		String response = requestCreator.createPostRequest(urlPath, relUrl, userId.toString());
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, userId.toString(), null);
 		
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -60,7 +59,7 @@ public class UserPhoneNumbersService {
 				+ "\"userId\" : " + userId + ", "
 				+ "\"phoneNumber\" : \"" + phoneNumber + "\" }";
 		
-		String response = requestCreator.createPostRequest(urlPath, relUrl, contentString);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, contentString, null);
 		
 		if (response.equalsIgnoreCase("true")) { return true; }
 		return false;
@@ -74,7 +73,7 @@ public class UserPhoneNumbersService {
 				+ "\"userId\" : " + userId + ", "
 				+ "\"phoneNumber\" : \"" + phoneNumber + "\" }";
 		
-		String response = requestCreator.createPostRequest(urlPath, relUrl, contentString);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, contentString, null);
 		
 		if(response.equalsIgnoreCase("true")) { return true; }
 		return false;
@@ -83,7 +82,7 @@ public class UserPhoneNumbersService {
 	public Boolean deletePhoneNumber(String id) throws IOException
 	{
 		relUrl = "userPhoneNumbers?action=deleteUserPhoneNumber";
-		String response = requestCreator.createPostRequest(urlPath, relUrl, id);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, id, null);
 		
 		if(response.equalsIgnoreCase("true")) { return true; }
 		return false;

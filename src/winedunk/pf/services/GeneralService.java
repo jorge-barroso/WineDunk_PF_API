@@ -38,7 +38,6 @@ public class GeneralService {
 	public List<viewRecommendedWines> getRecommendedWines() { return recommendedWines; }
 	public void setRecommendedWines(List<viewRecommendedWines> recommendedWines) { this.recommendedWines = recommendedWines; }
 
-	RequestsCreator requestCreator = new RequestsCreator();
 	
 	public void checkRecommended(HttpServletRequest request)
 	{
@@ -56,7 +55,7 @@ public class GeneralService {
 	public void loadRecommendedWines() throws IOException
 	{
 		String relURL = "recommendedWinesView?action=getRecommendedWines";
-		String responseString = requestCreator.createGetRequest(crudURL, relURL);
+		String responseString = RequestsCreator.createGetRequest(crudURL, relURL, null);
 		
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode responseJson = mapper.readTree(responseString);
@@ -182,7 +181,7 @@ public class GeneralService {
 				urlParameters +="&merchant=" + merchant;
 				
 				String merchantUrl = "merchantsView?action=getMerchant&id=" + merchant;
-				String responseString = requestCreator.createGetRequest(crudUrl, merchantUrl); //TODO
+				String responseString = RequestsCreator.createGetRequest(crudUrl, merchantUrl, null); //TODO
 				
 		    	ObjectMapper mapper = new ObjectMapper();
 		    	JsonNode responseJson = mapper.readTree(responseString);
@@ -191,7 +190,7 @@ public class GeneralService {
 		    	viewMerchants merchantObject = mapper.treeToValue(responseJson, viewMerchants.class);
 		    	
 		    	//TODO CHECK AND FINISH THIS
-		    	String offersUrl = "bestOffersByMerchantView?action=getOffersForMerchant&id=" + merchant;
+		    	//String offersUrl = "bestOffersByMerchantView?action=getOffersForMerchant&id=" + merchant;
 		    	//Get the best offers for the merchant
 		    	List<viewBestOffersbyMerchants> bestOffers = this.getBestOffers(Integer.parseInt(merchant));
 		    	if(bestOffers != null) { request.setAttribute("bestOffers", bestOffers); }
@@ -335,7 +334,7 @@ public class GeneralService {
 	{
 		String relURL = "bestOffersByMerchantView?action=getOffersForMerchant&id=" + merchantId;
 		System.out.println("CRUD: " + crudURL); //TODO DELETE
-		String offersResponse = requestCreator.createGetRequest(crudURL, relURL);
+		String offersResponse = RequestsCreator.createGetRequest(crudURL, relURL, null);
 		ObjectMapper mapper = new ObjectMapper();
 		
     	if(offersResponse != null && !offersResponse.equals(""))
@@ -362,7 +361,7 @@ public class GeneralService {
 	public List<viewMerchants> getMerchantsWithBestOffers() throws IOException
 	{
 		String merchantsUrl = "merchantsView?action=getMerchantsWithOffers";
-		String responseString = requestCreator.createGetRequest(crudURL, merchantsUrl);
+		String responseString = RequestsCreator.createGetRequest(crudURL, merchantsUrl, null);
 		ObjectMapper mapper = new ObjectMapper();
 		
 		if(responseString != null && !responseString.equals(""))

@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -42,26 +43,26 @@ public class ProductFeedsRunnable implements Runnable {
 	private final Tblpf pf;
 	private final ProductFeedsProcessHelper helper;
 	private final Properties properties;
-	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
 
 	public ProductFeedsRunnable(Tblpf pf, ProductFeedsProcessHelper helper, Properties properties) throws Exception {
 			super();
-			System.out.println(1);
 			this.pf = pf;
-			System.out.println(2);
 			this.helper = helper;
-			System.out.println(3);
 			this.properties = properties;
 	}
 
 	@Override
 	public void run() {
 		try {
-			this.processProductFeed(this.pf);
+			System.out.println("Starting product");
+			this.processProductFeed();
+			System.out.println("Product finished");
 		} catch (Exception e) {
 			e.printStackTrace();
 			this.helper.fail(this.pf.getId());
+		} finally {
+			new File("productFeed"+pf.getId()).delete();
 		}
 	}
 
@@ -71,19 +72,19 @@ public class ProductFeedsRunnable implements Runnable {
 	 * @throws MalformedURLException
 	 * @throws IOException
 	 */
-	public void processProductFeed(Tblpf pf) throws MalformedURLException, IOException, Exception
+	public void processProductFeed() throws MalformedURLException, IOException, Exception
 	{
-		this.helper.processing(pf.getId());
+		this.helper.processing(this.pf.getId());
 
-		final String pfMappingJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "PFMapping?action=getByPFId&id="+pf.getId());
+		final String pfMappingJson = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "PFMapping?action=getByPFId&id="+this.pf.getId(), null);
 		final Tblpfmapping pfMapping = this.mapper.readValue(pfMappingJson, Tblpfmapping.class);  
 
-		final String pfName = "productFeed"+pf.getId();
-		final URL feedURL = new URL(pf.getDownloadURL());
+		final String pfName = "productFeed"+this.pf.getId();
+		final URL feedURL = new URL(this.pf.getDownloadURL());
 		try {
-			if(pf.getIsZip())
+			if(this.pf.getIsZip())
 			{
-				final String zipName = "pf.zip"+pf.getId();
+				final String zipName = "this.pf.zip"+this.pf.getId();
 				try (final ReadableByteChannel channel = Channels.newChannel(feedURL.openStream());
 					final FileOutputStream outputFile = new FileOutputStream(zipName)) 
 				{
@@ -103,7 +104,8 @@ public class ProductFeedsRunnable implements Runnable {
 					}
 			}
 		} catch(Exception e) {
-			this.helper.fail(pf.getId());
+			e.printStackTrace();
+			this.helper.fail(this.pf.getId());
 		}
 
 		//get a list of files
@@ -113,10 +115,10 @@ public class ProductFeedsRunnable implements Runnable {
 		for(File file : files)
 		{
 			try {
-				final char separator = pf.getSeparator().equals("\\t") ? '\t' : pf.getSeparator().charAt(0);
+				final char separator = this.pf.getSeparator().equals("\\t") ? '\t' : this.pf.getSeparator().charAt(0);
 				final CSVParser parser = new CSVParserBuilder().withSeparator(separator).build();
 	
-				try(final CSVReader reader = new CSVReaderBuilder(new FileReader(file)).withSkipLines(pf.getHasHeader() ? 1 : 0).withCSVParser(parser).build())
+				try(final CSVReader reader = new CSVReaderBuilder(new FileReader(file)).withSkipLines(this.pf.getHasHeader() ? 1 : 0).withCSVParser(parser).build())
 				{
 					//in this list we will store the IDs of the products we process (to set the old products as deleted)
 					final List<Integer> productsFound = Collections.synchronizedList(new ArrayList<Integer>());
@@ -136,7 +138,7 @@ public class ProductFeedsRunnable implements Runnable {
 									String parameters = "{ \"partnerProductId\"  : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\", "
 											  		  + "  \"merchantProductId\" : \"" + finalValues[pfMapping.getMerchantProductIdColumn()] + "\"}";
 
-									product = mapper.readValue(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=findByPartnerProductIdAndMerchantProductId", parameters), Tblpfproduct.class);
+									product = mapper.readValue(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=findByPartnerProductIdAndMerchantProductId", parameters, null), Tblpfproduct.class);
 								} catch (JsonParseException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
 									e.printStackTrace();
@@ -156,20 +158,21 @@ public class ProductFeedsRunnable implements Runnable {
 
 								//populate values from the file using the mapping
 								product.setClicktag(finalValues[pfMapping.getClicktagColumn()]);
-								if(!finalValues[pfMapping.getDeliveryCostColumn()].trim().isEmpty())
-									product.setDeliveryCost(Float.valueOf(finalValues[pfMapping.getDeliveryCostColumn()]));
 								product.setImageURL(finalValues[pfMapping.getImageURLColumn()]);
 								product.setMerchantName(StringEscapeUtils.unescapeHtml4(finalValues[pfMapping.getMerchantNameColumn()]));
 								product.setMerchantProductId(finalValues[pfMapping.getMerchantProductIdColumn()]);
 								product.setName(finalValues[pfMapping.getNameColumn()]);
-								if(pfMapping.getPartnerMerchantId()!=null)
-									product.setPartnerMerchantId(finalValues[pfMapping.getPartnerMerchantId()]);
 								product.setPartnerProductDescription(finalValues[pfMapping.getPartnerProductDescriptionColumn()]);
 								product.setPartnerProductId(finalValues[pfMapping.getPartnerProductIdColumn()]);
-								if(!finalValues[pfMapping.getPriceColumn()].isEmpty())
-									product.setPrice(Float.valueOf(finalValues[pfMapping.getPriceColumn()]));
 								product.setProductURL(finalValues[pfMapping.getProductURLColumn()]);
 								product.setTblpf(pf);
+
+								if(!StringUtils.isBlank(finalValues[pfMapping.getDeliveryCostColumn()]))
+									product.setDeliveryCost(Float.valueOf(finalValues[pfMapping.getDeliveryCostColumn()]));
+								if(pfMapping.getPartnerMerchantId()!=null)
+									product.setPartnerMerchantId(finalValues[pfMapping.getPartnerMerchantId()]);
+								if(!StringUtils.isBlank(finalValues[pfMapping.getPriceColumn()]))
+									product.setPrice(Float.valueOf(finalValues[pfMapping.getPriceColumn()]));
 
 								//Extract product type if needed or just assign
 								String productType = finalValues[pfMapping.getWineTypeColumn()];
@@ -182,7 +185,7 @@ public class ProductFeedsRunnable implements Runnable {
 								if(product.getId()==null)
 								{
 									try {
-										product.setId(Integer.parseInt(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=addProduct", mapper.writeValueAsString(product))));
+										product.setId(Integer.parseInt(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=addProduct", mapper.writeValueAsString(product), null)));
 									} catch (NumberFormatException e) {
 										System.out.println("After adding the product to the database, the id returned doesn't seem to be a valid number");
 										e.printStackTrace();
@@ -203,7 +206,7 @@ public class ProductFeedsRunnable implements Runnable {
 								else
 								{
 									try {
-										final Boolean updated = Boolean.parseBoolean(requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product)));
+										final Boolean updated = Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product), null));
 										if(!updated)
 											System.out.println("Something went wrong updating the wine on the database");
 									} catch (JsonProcessingException e) {
@@ -231,19 +234,19 @@ public class ProductFeedsRunnable implements Runnable {
 						processExecutor.awaitTermination(1l, TimeUnit.DAYS);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
-						helper.fail(pf.getId());
+						helper.fail(this.pf.getId());
 						//if the tread is interrupted we just return without updating the last importation date, as the thread failed
 						return;
 					}
 
 					//Get all the listed products from this parter and remove those which id is not contaied in the list with the current products' ids
-					final String productsListJson = this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=getByPfId", "{\"id\" : "+pf.getId()+"}");
+					final String productsListJson = RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=getByPfId", "{\"id\" : "+this.pf.getId()+"}", null);
 					final List<Tblpfproduct> productsList = this.mapper.readValue(productsListJson, new TypeReference<List<Tblpfproduct>>(){});
 					for(Tblpfproduct pfProduct : productsList)
 					{
 						if(!productsFound.contains(pfProduct.getId()))
 						{
-							if(!Boolean.parseBoolean(this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pfProduct.getId()+"}")))
+							if(!Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pfProduct.getId()+"}", null)))
 								System.out.println("Couldn't delete wine "+pfProduct.getId());
 							else
 								System.out.println("Product "+pfProduct.getId()+" deleted");
@@ -251,9 +254,9 @@ public class ProductFeedsRunnable implements Runnable {
 					}
 
 					//set status as correctly imported
-					pf.setLastStandardisation(new Timestamp(new Date().getTime()));
-					this.requestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf));
-					this.helper.ok(pf.getId());
+					this.pf.setLastStandardisation(new Timestamp(new Date().getTime()));
+					RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf), null);
+					this.helper.ok(this.pf.getId());
 				}
 			} finally {
 				file.delete();

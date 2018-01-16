@@ -1,20 +1,9 @@
 package winedunk.pf.helpers;
 
-public enum PfStatus {
+public class PfStatus {
 
-	OK("Ok"),
-	PROCESSING("Processing"),
-	ERROR("Error"),
-	NEW("New");
-
-	private final String selectedField;
-
-	private PfStatus(String selectedField) {
-		this.selectedField = selectedField;
-	}
-
-	@Override
-	public String toString() {
-		return this.selectedField;
-	}
+	public static final String OK = "Ok";
+	public static final String PROCESSING = "Processing";
+	public static final String ERROR = "Error";
+	public static final String NEW = "New";
 }

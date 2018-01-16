@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Map;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -29,20 +30,41 @@ public class RequestsCreator extends EncodeURL {
 	 * @param urlPath
 	 * @param relURL
 	 * @param content
+	 * @param headers
 	 * @return
 	 * @throws IOException
 	 */
-	public String createPostRequest(String urlPath, String relURL, String content) throws IOException
+	public static String createPostRequest(String urlPath, String relURL, String content, Map<String, String> headers) throws IOException
 	{
 		//Create request
 		String fullURL = urlPath + relURL;
 		System.out.println("Full URL: "+fullURL);
-		URL url = new URL(fullURL);
-		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, true, content) : this.startHttpConnection(url, true, content);
 
-		con = this.processRequestResult(con, url);
+		return createPostRequest(fullURL, content, headers);
+	}
 
-		return this.readResponse(con);
+	/**
+	 * 
+	 * @param urlString
+	 * @param content
+	 * @param headers
+	 * @return
+	 * @throws IOException
+	 */
+	public static String createPostRequest(String urlString, String content, Map<String, String> headers) throws IOException
+	{
+		URL url = new URL(urlString);
+		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, true, content) : startHttpConnection(url, true, content);
+
+		if(headers!=null)
+		{
+			for(Map.Entry<String, String> header : headers.entrySet())
+				con.setRequestProperty(header.getKey(), header.getValue());
+		}
+
+		con = processRequestResult(con, url);
+
+		return readResponse(con);
 	}
 
 	/**
@@ -51,17 +73,23 @@ public class RequestsCreator extends EncodeURL {
 	 * @return
 	 * @throws IOException
 	 */
-	public String createGetRequest(String urlPath) throws IOException
+	public static String createGetRequest(String urlPath, Map<String, String> headers) throws IOException
 	{
 		//Create request
 		System.out.println("Full URL: "+urlPath);
 		URL url = new URL(urlPath);
-		HttpURLConnection con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
+		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null) : startHttpConnection(url, false, null);
 
-		con = this.processRequestResult(con, url);
+		if(headers!=null)
+		{
+			for(Map.Entry<String, String> header : headers.entrySet())
+				con.setRequestProperty(header.getKey(), header.getValue());
+		}
+
+		con = processRequestResult(con, url);
 
 		//Get result
-		return this.readResponse(con);
+		return readResponse(con);
 	}
 
 	/**
@@ -71,11 +99,11 @@ public class RequestsCreator extends EncodeURL {
 	 * @return
 	 * @throws IOException
 	 */
-	public String createGetRequest(String urlPath, String relURL) throws IOException
+	public static String createGetRequest(String urlPath, String relURL, Map<String, String> headers) throws IOException
 	{
 		//Create request
 		String fullURL = new String(urlPath + relURL);
-		return this.createGetRequest(fullURL);
+		return createGetRequest(fullURL, headers);
 	}
 
 
@@ -87,13 +115,13 @@ public class RequestsCreator extends EncodeURL {
 	 * @return
 	 * @throws IOException
 	 */
-	private HttpURLConnection startHttpConnection(URL url, boolean isPostRequest, String content) throws IOException
+	private static HttpURLConnection startHttpConnection(URL url, boolean isPostRequest, String content) throws IOException
 	{
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
 		//add request header
 		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
-		con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+		con.setRequestProperty("Accept-Language", "en-GB,en;q=0.5");
 		con.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
 
 		// Send post request
@@ -121,13 +149,13 @@ public class RequestsCreator extends EncodeURL {
 	/**
 	 * 
 	 * @param url
-	 * @param isPostRequest
-	 * @param content
+	 * @param isPostRequest <strong>TRUE</strong> if it's a post request, <strong>FALSE</strong> otherwise
+	 * @param content The body to use on a post request
 	 * @return
 	 * @throws UnsupportedEncodingException
 	 * @throws IOException
 	 */
-	private HttpsURLConnection startHttpsConnection(URL url, boolean isPostRequest, String content) throws UnsupportedEncodingException, IOException
+	private static HttpsURLConnection startHttpsConnection(URL url, boolean isPostRequest, String content) throws UnsupportedEncodingException, IOException
 	{
 		TrustManager[] trustAllManager = new TrustManager[] {
 			new X509TrustManager()
@@ -163,7 +191,7 @@ public class RequestsCreator extends EncodeURL {
 
 		//add request header
 		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
-		con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+		con.setRequestProperty("Accept-Language", "en-GB,en;q=0.5");
 		con.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
 
 		// Send post request
@@ -187,12 +215,12 @@ public class RequestsCreator extends EncodeURL {
 		return con;
 	}
 
-	private HttpURLConnection processRequestResult(HttpURLConnection con, URL url) throws MalformedURLException, UnsupportedEncodingException, IOException
+	private static HttpURLConnection processRequestResult(HttpURLConnection con, URL url) throws MalformedURLException, UnsupportedEncodingException, IOException
 	{
 		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
 		{
 			url = new URL(con.getHeaderField("Location"));
-			con = url.getProtocol().equals("https") ? this.startHttpsConnection(url, false, null) : this.startHttpConnection(url, false, null);
+			con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null) : startHttpConnection(url, false, null);
 		}
 
 		if(con.getResponseCode()/100!=2)
@@ -209,7 +237,7 @@ public class RequestsCreator extends EncodeURL {
 	 * @return
 	 * @throws IOException
 	 */
-	private String readResponse(URLConnection con) throws IOException {
+	private static String readResponse(URLConnection con) throws IOException {
 		BufferedReader in = new BufferedReader(
 		        new InputStreamReader(con.getInputStream(), "UTF-8"));
 		String inputLine;
@@ -218,7 +246,8 @@ public class RequestsCreator extends EncodeURL {
 		while ((inputLine = in.readLine()) != null) { responseBuffer.append(inputLine); }
 
 		in.close();
-		
+
+		//System.out.println(responseBuffer.toString());
 		return responseBuffer.toString();
 	}
 }

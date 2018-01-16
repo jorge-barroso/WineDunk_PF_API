@@ -38,7 +38,6 @@ public class ProductFeedsPocessor extends HttpServlet {
 
 	//initialize latch to make thread two wait until total amount of product feeds to be processed is declared by thread one
 	private final Properties properties = new Properties();
-	private final RequestsCreator requestsCreator = new RequestsCreator();
 	private final ObjectMapper mapper = new ObjectMapper();
 	private ProductFeedsProcessHelper helper;
 	private final Date currentDate = new Date();
@@ -69,7 +68,7 @@ public class ProductFeedsPocessor extends HttpServlet {
         //if we have an id it's because it was called manually, so we quickly process it
 		if(request.getParameter("id")!=null)
 		{
-			String pfJson = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById&id="+request.getParameter("id"));
+			String pfJson = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getById&id="+request.getParameter("id"), null);
 			Tblpf pf = this.mapper.readValue(pfJson, Tblpf.class);
 
 			try {
@@ -93,7 +92,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 		//Map response to a List of Tblpf objects
 		List<Tblpf> allProductFeedsList;
 		try {
-			final String productFeeds = this.requestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getAll");
+			final String productFeeds = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=getAll", null);
 			allProductFeedsList = this.mapper.readValue(productFeeds, mapper.getTypeFactory().constructCollectionType(List.class, Tblpf.class));
 		} catch (IOException e2) {
 			e2.printStackTrace();
@@ -132,7 +131,7 @@ public class ProductFeedsPocessor extends HttpServlet {
 							}
 						else
 						{
-							if(expression.getNextValidTimeAfter(new Date(timestamp.getTime())).getTime() <= currentDate.getTime() || pf.getStandardisationStatus().getName().equals(PfStatus.ERROR.toString()))
+							if(expression.getNextValidTimeAfter(new Date(timestamp.getTime())).getTime() <= currentDate.getTime() || pf.getStandardisationStatus().getName().equals(PfStatus.ERROR))
 								try {
 									pfExecutor.submit(new ProductFeedsRunnable(pf, helper, properties));
 								} catch (Exception e) {

@@ -28,7 +28,6 @@ public class ValidationService {
 	public viewUsers getUser() { return user; }
 	
 	public ValidationService() { } 
-    private RequestsCreator requestsCreator = new RequestsCreator();
     
     public Boolean validateUser(HttpServletRequest request, HttpServletResponse response) throws IOException
     {
@@ -48,7 +47,7 @@ public class ValidationService {
 					//Create request
 					relUrl = "users?action=getUserByAuth";
 					
-					String responseString = requestsCreator.createPostRequest(urlPath, relUrl, ourCookie.getValue());
+					String responseString = RequestsCreator.createPostRequest(urlPath, relUrl, ourCookie.getValue(), null);
 					if(responseString == null || responseString.equals("null")) { return false; }
 					ObjectMapper objectMapper = new ObjectMapper();
 					user = objectMapper.readValue(responseString, viewUsers.class);

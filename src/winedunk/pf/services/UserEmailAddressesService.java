@@ -26,12 +26,11 @@ public class UserEmailAddressesService {
 	public Integer getUserId() { return userId; }
 	public void setUserId(Integer userId) { this.userId = userId; }
 	
-	RequestsCreator requestCreator = new RequestsCreator();
 	
 	public List<userEmails> loadEmailAddresses() throws IOException 
 	{
 		relUrl = "userEmails?action=getUserEmailAddressesForUser";
-		String response = requestCreator.createPostRequest(urlPath, relUrl, userId.toString());
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, userId.toString(), null);
 		
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -60,7 +59,7 @@ public class UserEmailAddressesService {
 				+ "\"userId\" : " + userId + ", "
 				+ "\"emailAddress\" : \"" + emailAddress + "\" }";
 		
-		String response = requestCreator.createPostRequest(urlPath, relUrl, contentString);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, contentString, null);
 		
 		if (response.equalsIgnoreCase("true")) { return true; }
 		return false;
@@ -72,7 +71,7 @@ public class UserEmailAddressesService {
 				+ "\"id\" : " + addressId + ", "
 				+ "\"userId\" : " + userId + ", "
 				+ "\"emailAddress\" : \"" + emailAddress + "\" }";
-		String response = requestCreator.createPostRequest(urlPath, relUrl, contentString);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, contentString, null);
 		
 		if(response.equalsIgnoreCase("true")) { return true; }
 		return false;
@@ -81,7 +80,7 @@ public class UserEmailAddressesService {
 	public Boolean deleteEmailAddress(String id) throws IOException
 	{
 		relUrl = "userEmails?action=deleteUserEmail";
-		String response = requestCreator.createPostRequest(urlPath, relUrl, id);
+		String response = RequestsCreator.createPostRequest(urlPath, relUrl, id, null);
 		
 		if(response.equalsIgnoreCase("true")) { return true; }
 		return false;

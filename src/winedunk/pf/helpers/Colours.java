@@ -1,19 +1,9 @@
 package winedunk.pf.helpers;
 
-public enum Colours {
-	RED("Red"),
-	ROSE("Rose"),
-	WHITE("White");
-	
-	private String selectedValue;
-	
-	private Colours(String selectedValue)
-	{
-		this.selectedValue = selectedValue;
-	}
+public class Colours {
 
-	public String toString()
-	{
-		return this.selectedValue;
-	}
+	public static final String RED = "Red";
+	public static final String ROSE = "Rose";
+	public static final String WHITE = "White";
+	public static final String WILDCARD_ROSE = "ros";
 }

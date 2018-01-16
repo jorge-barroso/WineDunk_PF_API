@@ -18,12 +18,11 @@ public class HomeService {
 	public String getCrudURL() { return crudURL; }
 	public void setCrudURL(String crudURL) { this.crudURL = crudURL; }
 
-	RequestsCreator requestCreator = new RequestsCreator();
-
+	
 	public List<viewRecommendedWines> loadRecommendedWines() throws IOException
 	{
 		String relURL = "recommendedWinesView?action=getRecommendedWines";
-		String responseString = requestCreator.createGetRequest(crudURL, relURL);
+		String responseString = RequestsCreator.createGetRequest(crudURL, relURL, null);
 		
 		ObjectMapper mapper = new ObjectMapper();
 		JsonNode responseJson = mapper.readTree(responseString);
@@ -46,7 +45,7 @@ public class HomeService {
 	public List<viewBestOffersbyMerchants> getBestOffers(Integer merchantId) throws IOException
 	{
 		String relURL = "bestOffersByMerchantView?action=getOffersForMerchant&id=" + merchantId;
-		String offersResponse = requestCreator.createGetRequest(crudURL, relURL);
+		String offersResponse = RequestsCreator.createGetRequest(crudURL, relURL, null);
 		ObjectMapper mapper = new ObjectMapper();
 		
     	if(offersResponse != null && !offersResponse.equals(""))
