@@ -54,15 +54,9 @@ public class RequestsCreator extends EncodeURL {
 	public static String createPostRequest(String urlString, String content, Map<String, String> headers) throws IOException
 	{
 		URL url = new URL(urlString);
-		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, true, content) : startHttpConnection(url, true, content);
+		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, true, content, headers) : startHttpConnection(url, true, content, headers);
 
-		if(headers!=null)
-		{
-			for(Map.Entry<String, String> header : headers.entrySet())
-				con.setRequestProperty(header.getKey(), header.getValue());
-		}
-
-		con = processRequestResult(con, url);
+		con = processRequestResult(con, url, headers);
 
 		return readResponse(con);
 	}
@@ -78,15 +72,9 @@ public class RequestsCreator extends EncodeURL {
 		//Create request
 		System.out.println("Full URL: "+urlPath);
 		URL url = new URL(urlPath);
-		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null) : startHttpConnection(url, false, null);
+		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null, headers) : startHttpConnection(url, false, null, headers);
 
-		if(headers!=null)
-		{
-			for(Map.Entry<String, String> header : headers.entrySet())
-				con.setRequestProperty(header.getKey(), header.getValue());
-		}
-
-		con = processRequestResult(con, url);
+		con = processRequestResult(con, url, headers);
 
 		//Get result
 		return readResponse(con);
@@ -115,7 +103,7 @@ public class RequestsCreator extends EncodeURL {
 	 * @return
 	 * @throws IOException
 	 */
-	private static HttpURLConnection startHttpConnection(URL url, boolean isPostRequest, String content) throws IOException
+	private static HttpURLConnection startHttpConnection(URL url, boolean isPostRequest, String content, Map<String, String> extraHeaders) throws IOException
 	{
 		HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
@@ -123,6 +111,14 @@ public class RequestsCreator extends EncodeURL {
 		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
 		con.setRequestProperty("Accept-Language", "en-GB,en;q=0.5");
 		con.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+		if(extraHeaders!=null)
+		{
+			//add extra custom headers
+			for(Map.Entry<String, String> header : extraHeaders.entrySet())
+			{
+				con.setRequestProperty(header.getKey(), header.getValue());
+			}
+		}
 
 		// Send post request
 		if(isPostRequest)
@@ -155,7 +151,7 @@ public class RequestsCreator extends EncodeURL {
 	 * @throws UnsupportedEncodingException
 	 * @throws IOException
 	 */
-	private static HttpsURLConnection startHttpsConnection(URL url, boolean isPostRequest, String content) throws UnsupportedEncodingException, IOException
+	private static HttpsURLConnection startHttpsConnection(URL url, boolean isPostRequest, String content, Map<String, String> extraHeaders) throws UnsupportedEncodingException, IOException
 	{
 		TrustManager[] trustAllManager = new TrustManager[] {
 			new X509TrustManager()
@@ -193,6 +189,14 @@ public class RequestsCreator extends EncodeURL {
 		con.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
 		con.setRequestProperty("Accept-Language", "en-GB,en;q=0.5");
 		con.setRequestProperty("Content-Type", "application/json;charset=UTF-8");
+		if(extraHeaders!=null)
+		{
+			//add extra custom headers
+			for(Map.Entry<String, String> header : extraHeaders.entrySet())
+			{
+				con.setRequestProperty(header.getKey(), header.getValue());
+			}
+		}
 
 		// Send post request
 		if(isPostRequest)
@@ -205,22 +209,18 @@ public class RequestsCreator extends EncodeURL {
 		    os.write(content.getBytes("UTF-8"));
 		    os.close();
 		}
-		else
-		{
-			con.setRequestMethod("GET");
-		}
 
 		con.connect();
 
 		return con;
 	}
 
-	private static HttpURLConnection processRequestResult(HttpURLConnection con, URL url) throws MalformedURLException, UnsupportedEncodingException, IOException
+	private static HttpURLConnection processRequestResult(HttpURLConnection con, URL url, Map<String, String> headers) throws MalformedURLException, UnsupportedEncodingException, IOException
 	{
 		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
 		{
 			url = new URL(con.getHeaderField("Location"));
-			con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null) : startHttpConnection(url, false, null);
+			con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null, headers) : startHttpConnection(url, false, null, headers);
 		}
 
 		if(con.getResponseCode()/100!=2)

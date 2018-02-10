@@ -44,9 +44,10 @@ public class HtmlDataExtractor implements DataExtractor {
 	    	//for each element, look for keywords to find the remaining values of the wine
 	    	for(int i=0;i<elements.size();i++)
 	    	{
-	    		System.out.println(elements.get(i).ownText());
 	    		for(Tblpfmerchanthtmlparsing parsingInstruction : parsingInstructions)
 	        	{
+	    			if (parsingInstruction.getTblpfparsingextractionmethod()==null)
+	    				continue;
 	    			//TODO remove
 	    			/*if(Arrays.asList("Alcohol by Volume:", "Closure type:", "Size", "Brand", "Origin Information", "home page", "XXX").contains(elements.get(i).ownText()))
 	    			{
@@ -62,7 +63,7 @@ public class HtmlDataExtractor implements DataExtractor {
 	    				continue;
 
 	    			//if we don't find the current keyword go for the next one
-	        		if(parsingInstruction.getMustMatch())
+	        		if(parsingInstruction.getMustMatch()!=null && parsingInstruction.getMustMatch())
 	        		{
 	        			if(!elements.get(i).ownText().equalsIgnoreCase(parsingInstruction.getNameInWeb()))
 	        				continue;
@@ -130,10 +131,13 @@ public class HtmlDataExtractor implements DataExtractor {
 	    				wineValues.put(parsingInstruction.getTblpfextractioncolumn().getColumnName(), extractedValue);
 	        	}
 	    	}
-	    	return wineValues;
     	} catch (Exception e) {
     		e.printStackTrace();
-    		return wineValues;
     	}
+    	for(Map.Entry<String, String> entry : wineValues.entrySet())
+    	{
+    		System.out.println(entry.getKey()+" = "+entry.getValue());
+    	}
+    	return wineValues;
 	}
 }

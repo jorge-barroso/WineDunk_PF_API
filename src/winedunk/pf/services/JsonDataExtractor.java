@@ -46,8 +46,7 @@ public class JsonDataExtractor implements DataExtractor {
 			if(!StringUtils.isBlank(extractedValue))
 				wineValues.put(parsingInstruction.getTblpfextractioncolumn().getColumnName(), extractedValue);
 		}
-		
 
-		return null;
+		return wineValues;
 	}
 }

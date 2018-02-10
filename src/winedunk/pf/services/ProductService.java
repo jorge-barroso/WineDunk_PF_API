@@ -3,6 +3,7 @@ package winedunk.pf.services;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -87,13 +88,14 @@ public class ProductService {
     	if(dataSourceParams.isEmpty())
 			return dataUrl;
 
-		URL url = new URL(dataUrl);
+		URL url = new URL(product.getProductURL());
 
 		//As paths start with a first slash, this means that index 1 of the array will be the first effective section as well
-		String[] pathSections = url.getPath().split("\\/");
+		String[] pathSections = url.getPath()==null ? new String[0] : url.getPath().split("\\/");
+		System.out.println(Arrays.asList(pathSections));
 
 		//Parse query string into a map
-		String[] queryParams = url.getQuery().split("\\&");
+		String[] queryParams = url.getQuery()==null ? new String[0] : url.getQuery().split("\\&");
 		Map<String, String> queryParamsMap = new HashMap<String, String>();
 		for(String queryParam : queryParams)
 		{

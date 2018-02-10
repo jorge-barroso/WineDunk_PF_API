@@ -93,6 +93,7 @@ public class tblShops {
 
 	public tblShops(Integer id) { this.id = id; }
 	public tblShops(String name) { this.name = name; }
+
 	public tblShops()
 	{
 		this.id = null;
@@ -104,5 +105,12 @@ public class tblShops {
 		this.clicks = null;
 		this.wines = null;
 		this.winesByMerchant = null;
+	}
+
+	@Override
+	public String toString() {
+		return "tblShops [id=" + id + ", name=" + name + ", logo=" + logo + ", homePage=" + homePage
+				+ ", genericProductPage=" + genericProductPage + ", dataSource=" + dataSource + ", deleted=" + deleted
+				+ "]";
 	}
 }

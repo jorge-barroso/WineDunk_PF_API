@@ -85,8 +85,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	@Override
 	public Integer call() {
 		try {
-			if(!product.getMerchantName().equals("Waitrose"))
-				return null;
 			System.out.println("Processing wine number "+j);
 			Integer id = productProcess(product);
 			System.out.println("Wine "+j+" processed");
@@ -386,6 +384,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	ProductService productService = new ProductService();
 
     	DataExtractor dataExtractor;
+    	System.out.println(dataSource==null);
     	switch(dataSource.getContentType())
     	{
 	    	case HTML:
@@ -534,7 +533,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				Thread.currentThread().interrupt();
 				return null;
 			} catch (JsonMappingException e1) {
-				System.out.println("While trying to get the winery by its name from the CRUD, the JSON response couldn't be mapped to a tblClosure object (discrepancies between model and JSON)");
+				System.out.println("While trying to get the winery by its name from the CRUD, the JSON response couldn't be mapped to a tblWineries object (discrepancies between model and JSON)");
 				e1.printStackTrace();
 				Thread.currentThread().interrupt();
 				return null;

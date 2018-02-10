@@ -4,6 +4,8 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -11,10 +13,14 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
 import winedunk.pf.helpers.ContentTypes;
 
 @Entity
 @Table(name="tblDataSources")
+@JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
 public class DataSource {
 
 	@Id
@@ -36,12 +42,13 @@ public class DataSource {
 
 	@NotNull
 	@Column(name="contentType")
+	@Enumerated(EnumType.STRING)
 	private ContentTypes contentType;
 
-	@OneToMany
+	@OneToMany(mappedBy="dataSource", targetEntity=tblShops.class)
 	private List<tblShops> shops;
 
-	@OneToMany
+	@OneToMany(mappedBy="dataSource", targetEntity=DataSourceParam.class)
 	private List<DataSourceParam> dataSourceParams;
 
 	public DataSource()
