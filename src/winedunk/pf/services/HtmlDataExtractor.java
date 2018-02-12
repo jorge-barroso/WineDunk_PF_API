@@ -25,43 +25,46 @@ public class HtmlDataExtractor implements DataExtractor {
 		return token;
 	}
 
-	public void setToken(String token) {
+	public void setToken(final String token) {
 		this.token = token;
 	}
 
 	@Override
-	public Map<String, String> parseWineData(String dataUrl, Map<String, String> dataRequestHeaders, Tblpfproduct product, List<Tblpfmerchanthtmlparsing> parsingInstructions) throws IOException {
+	public Map<String, String> parseWineData(final String dataUrl, final Map<String, String> dataRequestHeaders, final Tblpfproduct product, final List<Tblpfmerchanthtmlparsing> parsingInstructions) throws IOException {
 
-		String contents = RequestsCreator.createGetRequest(Utils.getOrDefault(dataUrl, product.getProductURL()), dataRequestHeaders);
+		final String contents = RequestsCreator.createGetRequest(Utils.getOrDefault(dataUrl, product.getProductURL()), dataRequestHeaders);
 
-		Document html = Jsoup.parse(contents, "UTF-8");
+		final Document html = Jsoup.parse(contents, "UTF-8");
 
-		Map<String, String> wineValues = new HashMap<String, String>();
+		System.out.println(html);
+		final Map<String, String> wineValues = new HashMap<String, String>((int)Math.ceil(parsingInstructions.size()/0.75));
     	try {
 	    	//Extract all elements from html
-	    	Elements elements = html.getAllElements();
+    		final Elements elements = html.getAllElements();
 	
 	    	//for each element, look for keywords to find the remaining values of the wine
 	    	for(int i=0;i<elements.size();i++)
 	    	{
-	    		for(Tblpfmerchanthtmlparsing parsingInstruction : parsingInstructions)
+	    		if(!elements.get(i).ownText().trim().isEmpty())
+	    		{
+	    			System.out.print(elements.get(i).ownText());
+	    			System.out.println();
+	    		}
+	    		for(final Tblpfmerchanthtmlparsing parsingInstruction : parsingInstructions)
 	        	{
 	    			if (parsingInstruction.getTblpfparsingextractionmethod()==null)
 	    				continue;
-	    			//TODO remove
-	    			/*if(Arrays.asList("Alcohol by Volume:", "Closure type:", "Size", "Brand", "Origin Information", "home page", "XXX").contains(elements.get(i).ownText()))
-	    			{
-	    				System.out.println(elements.get(i).ownText());
+	    			if(elements.get(i).ownText().toLowerCase().contains("country"))
+		    			System.out.println(elements.get(i).ownText()+" == "+parsingInstruction.getNameInWeb());
+	    			else
 	    				System.out.println(parsingInstruction.getNameInWeb());
-	    				System.out.println(elements.get(i).ownText().equalsIgnoreCase(parsingInstruction.getNameInWeb()));
-	    			}*/
-
-	    			//System.out.println(merchantParsing.getHtmlTagType()+" - "+elements.get(i).tagName());
 
 	    			//if we have it already inserted on the values' map and it's not an empty value or a null value, we go for the next key
-	    			if(!StringUtils.isBlank(wineValues.get(parsingInstruction.getTblpfextractioncolumn().getColumnName())))
+	    			boolean isBlank = StringUtils.isBlank(wineValues.get(parsingInstruction.getTblpfextractioncolumn().getColumnName()));
+	    			if(!isBlank)
 	    				continue;
 
+	    			//System.out.println(parsingInstruction.getNameInWeb());
 	    			//if we don't find the current keyword go for the next one
 	        		if(parsingInstruction.getMustMatch()!=null && parsingInstruction.getMustMatch())
 	        		{
@@ -74,6 +77,7 @@ public class HtmlDataExtractor implements DataExtractor {
 	        				continue;
 	        		}
 
+	        		System.out.println(parsingInstruction.getHtmlTagType()+" = "+elements.get(i).tagName());
 	        		//if it's not the tag we were looking for, skip it as well
 	        		if(parsingInstruction.getHtmlTagType()!=null && !parsingInstruction.getHtmlTagType().trim().equals(elements.get(i).tagName().trim()))
 	        			continue;
@@ -118,7 +122,7 @@ public class HtmlDataExtractor implements DataExtractor {
 	    			{
 	    				if(extractedValue.contains(","))
 	    				{
-	    					String[] values = extractedValue.split("\\s*,\\s*");
+	    					final String[] values = extractedValue.split("\\s*,\\s*");
 	    					extractedValue = values[0];
 
 	    					if(!wineValues.containsKey(TblWineFields.COUNTRY))
@@ -134,7 +138,8 @@ public class HtmlDataExtractor implements DataExtractor {
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
-    	for(Map.Entry<String, String> entry : wineValues.entrySet())
+    	System.out.println("Extracted data:");
+    	for(final Map.Entry<String, String> entry : wineValues.entrySet())
     	{
     		System.out.println(entry.getKey()+" = "+entry.getValue());
     	}

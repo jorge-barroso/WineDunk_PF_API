@@ -375,9 +375,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      * @param product The product we are parsing
      * @param merchantParsings The list of elements we can parse with instructions for doing so
      * @return A map containing the values, being the Key the name of the column in tblWines and the value, its own value 
-     * @throws IOException 
+     * @throws Exception 
      */
-    private Map<String, String> getWineValues(Tblpfproduct product, List<Tblpfmerchanthtmlparsing> merchantParsings) throws IOException
+    private Map<String, String> getWineValues(Tblpfproduct product, List<Tblpfmerchanthtmlparsing> merchantParsings) throws Exception
     {
     	DataSource dataSource = this.getMerchant(product.getMerchantName()).getDataSource();
 
@@ -388,6 +388,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	switch(dataSource.getContentType())
     	{
 	    	case HTML:
+	    		System.out.println("It's html");
 	    		dataExtractor = new HtmlDataExtractor();
 	    		break;
 	    	case JSON:
@@ -397,7 +398,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	    		dataExtractor = new XmlDataExtractor();
 	    		break;
     		default:
-    			return null;
+    			throw new Exception("Unrecognized content type");
     	}
 
     	String token = dataExtractor.login(dataSource.getLoginUrl(), dataSource.getTokenField());
