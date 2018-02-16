@@ -36,7 +36,8 @@ public class HtmlDataExtractor implements DataExtractor {
 
 		final Document html = Jsoup.parse(contents, "UTF-8");
 
-		System.out.println(html);
+//		System.out.println(html);
+
 		final Map<String, String> wineValues = new HashMap<String, String>((int)Math.ceil(parsingInstructions.size()/0.75));
     	try {
 	    	//Extract all elements from html
@@ -45,19 +46,19 @@ public class HtmlDataExtractor implements DataExtractor {
 	    	//for each element, look for keywords to find the remaining values of the wine
 	    	for(int i=0;i<elements.size();i++)
 	    	{
-	    		if(!elements.get(i).ownText().trim().isEmpty())
-	    		{
-	    			System.out.print(elements.get(i).ownText());
-	    			System.out.println();
-	    		}
 	    		for(final Tblpfmerchanthtmlparsing parsingInstruction : parsingInstructions)
 	        	{
+	    			/*if(!parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
+	    			{
+	    				continue;
+	    			}
+	    			else
+	    			{
+	    				System.out.println();
+	    			}*/
+
 	    			if (parsingInstruction.getTblpfparsingextractionmethod()==null)
 	    				continue;
-	    			if(elements.get(i).ownText().toLowerCase().contains("country"))
-		    			System.out.println(elements.get(i).ownText()+" == "+parsingInstruction.getNameInWeb());
-	    			else
-	    				System.out.println(parsingInstruction.getNameInWeb());
 
 	    			//if we have it already inserted on the values' map and it's not an empty value or a null value, we go for the next key
 	    			boolean isBlank = StringUtils.isBlank(wineValues.get(parsingInstruction.getTblpfextractioncolumn().getColumnName()));
@@ -77,11 +78,12 @@ public class HtmlDataExtractor implements DataExtractor {
 	        				continue;
 	        		}
 
-	        		System.out.println(parsingInstruction.getHtmlTagType()+" = "+elements.get(i).tagName());
 	        		//if it's not the tag we were looking for, skip it as well
 	        		if(parsingInstruction.getHtmlTagType()!=null && !parsingInstruction.getHtmlTagType().trim().equals(elements.get(i).tagName().trim()))
 	        			continue;
 
+	        		if(parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
+	        			System.out.println();
 	        		String extractedValue;
 	    			//extract value
 	        		Element element;
@@ -130,6 +132,8 @@ public class HtmlDataExtractor implements DataExtractor {
 	    				}
 	    			}
 
+	    			if(parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
+	    				System.out.println(parsingInstruction.getTblpfextractioncolumn().getColumnName() + " == " + extractedValue);
 	    			//Store values
 	    			if(!StringUtils.isBlank(extractedValue))
 	    				wineValues.put(parsingInstruction.getTblpfextractioncolumn().getColumnName(), extractedValue);
@@ -138,10 +142,12 @@ public class HtmlDataExtractor implements DataExtractor {
     	} catch (Exception e) {
     		e.printStackTrace();
     	}
+
     	System.out.println("Extracted data:");
     	for(final Map.Entry<String, String> entry : wineValues.entrySet())
     	{
-    		System.out.println(entry.getKey()+" = "+entry.getValue());
+    		if(entry.getKey().equals(TblWineFields.APPELLATION))
+    			System.out.println(entry.getKey()+" = "+entry.getValue());
     	}
     	return wineValues;
 	}

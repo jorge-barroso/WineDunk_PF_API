@@ -73,7 +73,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		this.executionDate = executionDate;
 		this.product = product;
 		this.j = j;
-
 		this.mapper.setSerializationInclusion(Include.NON_NULL);
 	}
 
@@ -103,7 +102,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     {
     	this.wineService = new WineService(properties);
 		this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
-
 		try {
 	    	System.out.println(product.getName() + " - " + product.getMerchantName());
 	    	//Get wine values by parsing the website
@@ -550,7 +548,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			if(!StringUtils.isBlank(wineValues.get(TblWineFields.APPELLATION)))
 			{
 				try {
-					appellation = this.wineService.getAppellation(TblWineFields.APPELLATION);
+					appellation = this.wineService.getAppellation(wineValues.get(TblWineFields.APPELLATION));
 				} catch (JsonParseException e) {
 					System.out.println("While trying to get the appellation by its name, the JSON response from the CRUD doesn't seem to have a valid format");
 					e.printStackTrace();

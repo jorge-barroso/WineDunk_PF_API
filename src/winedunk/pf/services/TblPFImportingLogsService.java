@@ -18,8 +18,7 @@ public class TblPFImportingLogsService {
 	/**
 	 * Default constructor.
 	 */
-	public TblPFImportingLogsService() {
-	}
+	public TblPFImportingLogsService() {}
 
 	public void sendLog(String logMessage, String technicalDetails, Tblpf pf, Tblpfproduct product, Date date)
 	{
