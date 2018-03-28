@@ -17,7 +17,7 @@ import winedunk.pf.helpers.Utils;
 import winedunk.pf.models.Tblpfmerchanthtmlparsing;
 import winedunk.pf.models.Tblpfproduct;
 
-public class HtmlDataExtractor implements DataExtractor {
+public final class HtmlDataExtractor implements DataExtractor {
 
 	private String token;
 
@@ -48,15 +48,6 @@ public class HtmlDataExtractor implements DataExtractor {
 	    	{
 	    		for(final Tblpfmerchanthtmlparsing parsingInstruction : parsingInstructions)
 	        	{
-	    			/*if(!parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
-	    			{
-	    				continue;
-	    			}
-	    			else
-	    			{
-	    				System.out.println();
-	    			}*/
-
 	    			if (parsingInstruction.getTblpfparsingextractionmethod()==null)
 	    				continue;
 
@@ -82,10 +73,8 @@ public class HtmlDataExtractor implements DataExtractor {
 	        		if(parsingInstruction.getHtmlTagType()!=null && !parsingInstruction.getHtmlTagType().trim().equals(elements.get(i).tagName().trim()))
 	        			continue;
 
-	        		if(parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
-	        			System.out.println();
+	        		//extract value
 	        		String extractedValue;
-	    			//extract value
 	        		Element element;
 	    			switch(parsingInstruction.getTblpfparsingextractionmethod().getMethod())
 	    			{
@@ -146,8 +135,7 @@ public class HtmlDataExtractor implements DataExtractor {
     	System.out.println("Extracted data:");
     	for(final Map.Entry<String, String> entry : wineValues.entrySet())
     	{
-    		if(entry.getKey().equals(TblWineFields.APPELLATION))
-    			System.out.println(entry.getKey()+" = "+entry.getValue());
+    		System.out.println(entry.getKey()+" = "+entry.getValue());
     	}
     	return wineValues;
 	}

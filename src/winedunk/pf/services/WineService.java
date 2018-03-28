@@ -563,7 +563,7 @@ public class WineService {
 		if(existingWine.getCountry()==null && wine.getCountry()!=null)
 			existingWine.setCountry(wine.getCountry());
 
-		if(existingWine.getDefaultDescription().length() < wine.getDefaultDescription().length())
+		if(wine.getDefaultDescription()==null)
 		{
 			existingWine.setDefaultDescription(wine.getDefaultDescription());
 			existingWine.setShortDescription(wine.getShortDescription());
@@ -581,6 +581,7 @@ public class WineService {
 		if(existingWine.getWinery()==null && wine.getWinery()!=null)
 			existingWine.setWinery(wine.getWinery());
 
+		
 		return existingWine;
 	}
 }

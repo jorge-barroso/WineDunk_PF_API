@@ -139,6 +139,58 @@ public class DataSource {
 	}
 
 	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((authField == null) ? 0 : authField.hashCode());
+		result = prime * result + ((contentType == null) ? 0 : contentType.hashCode());
+		result = prime * result + ((dataUrl == null) ? 0 : dataUrl.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((loginUrl == null) ? 0 : loginUrl.hashCode());
+		result = prime * result + ((tokenField == null) ? 0 : tokenField.hashCode());
+		return result;
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		DataSource other = (DataSource) obj;
+		if (authField == null) {
+			if (other.authField != null)
+				return false;
+		} else if (!authField.equals(other.authField))
+			return false;
+		if (contentType != other.contentType)
+			return false;
+		if (dataUrl == null) {
+			if (other.dataUrl != null)
+				return false;
+		} else if (!dataUrl.equals(other.dataUrl))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (loginUrl == null) {
+			if (other.loginUrl != null)
+				return false;
+		} else if (!loginUrl.equals(other.loginUrl))
+			return false;
+		if (tokenField == null) {
+			if (other.tokenField != null)
+				return false;
+		} else if (!tokenField.equals(other.tokenField))
+			return false;
+		return true;
+	}
+
+	@Override
 	public String toString() {
 		return "DataSource [id=" + id + ", loginUrl=" + loginUrl + ", tokenField=" + tokenField + ", authField="
 				+ authField + ", dataUrl=" + dataUrl + ", contentType=" + contentType + "]";

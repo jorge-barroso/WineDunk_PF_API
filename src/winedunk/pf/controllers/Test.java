@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.ejb.EJB;
@@ -61,7 +60,7 @@ public class Test extends HttpServlet {
 		System.out.println(end-start);
 
 		start = new Date().getTime();
-		Set<Integer> wineIds = products.parallelStream().filter(product -> !product.isDeleted()).map(product -> product.getTblWines().getId()).collect(Collectors.toSet());
+		List<Integer> wineIds = products.parallelStream().filter(product -> !product.isDeleted()).map(product -> product.getTblWines().getId()).collect(Collectors.toList());
 		end = new Date().getTime();
 		System.out.println(end-start);
 		System.out.println(wineIds);

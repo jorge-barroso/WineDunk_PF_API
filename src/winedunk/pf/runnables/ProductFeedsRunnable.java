@@ -111,7 +111,6 @@ public class ProductFeedsRunnable implements Runnable {
 		//get a list of files
 		final File[] files = new File(pfName).isDirectory() ? new File(pfName).listFiles() : new File[] {new File(pfName)};
 
-		System.out.println("Available processors: "+Runtime.getRuntime().availableProcessors());
 		for(File file : files)
 		{
 			try {
@@ -126,6 +125,7 @@ public class ProductFeedsRunnable implements Runnable {
 					final ExecutorService processExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()-1);
 
 					String[] lineValues;
+					final String crudUrl = properties.getProperty("crud.url");
 					while((lineValues = reader.readNext())!= null)
 					{
 						final String[] finalValues = lineValues;
@@ -135,10 +135,13 @@ public class ProductFeedsRunnable implements Runnable {
 							public void run() {
 								Tblpfproduct product;
 								try {
+									if(Boolean.parseBoolean(RequestsCreator.createGetRequest(crudUrl+"PFProductsBlacklist?partnerId="+pf.getPartnerId()+"&partnerProductId="+finalValues[pfMapping.getPartnerProductIdColumn()], null)))
+										return;
+
 									String parameters = "{ \"partnerProductId\"  : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\", "
 											  		  + "  \"merchantProductId\" : \"" + finalValues[pfMapping.getMerchantProductIdColumn()] + "\"}";
 
-									product = mapper.readValue(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=findByPartnerProductIdAndMerchantProductId", parameters, null), Tblpfproduct.class);
+									product = mapper.readValue(RequestsCreator.createPostRequest(crudUrl, "Products?action=findByPartnerProductIdAndMerchantProductId", parameters, null), Tblpfproduct.class);
 								} catch (JsonParseException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
 									e.printStackTrace();

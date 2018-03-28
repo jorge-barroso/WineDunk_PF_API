@@ -108,6 +108,65 @@ public class tblShops {
 	}
 
 	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((dataSource == null) ? 0 : dataSource.hashCode());
+		result = prime * result + ((deleted == null) ? 0 : deleted.hashCode());
+		result = prime * result + ((genericProductPage == null) ? 0 : genericProductPage.hashCode());
+		result = prime * result + ((homePage == null) ? 0 : homePage.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((logo == null) ? 0 : logo.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
+		return result;
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		tblShops other = (tblShops) obj;
+		if (dataSource == null) {
+			if (other.dataSource != null)
+				return false;
+		} else if (!dataSource.equals(other.dataSource))
+			return false;
+		if (deleted == null) {
+			if (other.deleted != null)
+				return false;
+		} else if (!deleted.equals(other.deleted))
+			return false;
+		if (genericProductPage == null) {
+			if (other.genericProductPage != null)
+				return false;
+		} else if (!genericProductPage.equals(other.genericProductPage))
+			return false;
+		if (homePage == null) {
+			if (other.homePage != null)
+				return false;
+		} else if (!homePage.equals(other.homePage))
+			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
+		if (logo == null) {
+			if (other.logo != null)
+				return false;
+		} else if (!logo.equals(other.logo))
+			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
+		return true;
+	}
+	@Override
 	public String toString() {
 		return "tblShops [id=" + id + ", name=" + name + ", logo=" + logo + ", homePage=" + homePage
 				+ ", genericProductPage=" + genericProductPage + ", dataSource=" + dataSource + ", deleted=" + deleted

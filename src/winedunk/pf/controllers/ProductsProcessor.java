@@ -7,10 +7,8 @@ import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -122,7 +120,7 @@ public class ProductsProcessor extends HttpServlet {
 				final ExecutorService executor = Executors.newSingleThreadExecutor();//Runtime.getRuntime().availableProcessors()-1);
 				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>(products.size());
 				Integer j = 1;
-				final Set<Tblpf> pfs = new HashSet<Tblpf>();
+				final List<Tblpf> pfs = new ArrayList<Tblpf>(products.size());
 				//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
 
 				for(Tblpfproduct product : products)
@@ -179,8 +177,8 @@ public class ProductsProcessor extends HttpServlet {
 				//Get a list with all the products in the database and set as deleted those that are not present in the list of processed IDs
 				try {
 					List<tblPartnersProducts> partnerProducts = partnersProductsService.getAll();
-					List<Integer> existingWineIds = new ArrayList<Integer>(partnerProducts.size());
-					List<Integer> allWineIds = new ArrayList<Integer>(partnerProducts.size());
+					List<Integer> existingWineIds = new ArrayList<Integer>(futures.size());
+					List<Integer> allWineIds = new ArrayList<Integer>(futures.size());
 					for(tblPartnersProducts partnerProduct: partnerProducts)
 					{
 						if(!processedProducts.contains(partnerProduct.getId()))

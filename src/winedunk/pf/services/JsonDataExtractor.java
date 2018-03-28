@@ -14,7 +14,7 @@ import winedunk.pf.helpers.Utils;
 import winedunk.pf.models.Tblpfmerchanthtmlparsing;
 import winedunk.pf.models.Tblpfproduct;
 
-public class JsonDataExtractor implements DataExtractor {
+public final class JsonDataExtractor implements DataExtractor {
 
 	private String token;
 

@@ -231,7 +231,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	        	{
 	        		if(StringUtils.isBlank(grapeVariety))
 	        			continue;
-	        		this.setWinesGrapeVarieties(grapeVariety.trim(), wine);
+	        		wine = this.setWinesGrapeVarieties(grapeVariety.trim(), wine);
 	        	}
 	    	}
 
@@ -982,7 +982,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		}
 	}
 
-    public void setWinesGrapeVarieties(String grapeVarietyName, tblWines wine)
+    public tblWines setWinesGrapeVarieties(String grapeVarietyName, tblWines wine)
     {
 		grapeVarietyName = WordUtils.capitalizeFully(StringUtils.stripAccents(grapeVarietyName));
 
@@ -992,7 +992,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return;
+			return wine;
 		}
 
 		tblGrapeVarieties grapeVariety;
@@ -1001,15 +1001,15 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return;
+			return wine;
 		} catch (JsonMappingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return;
+			return wine;
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-			return;
+			return wine;
 		}
 
 		if(grapeVariety.getId()==null)
@@ -1020,33 +1020,25 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				} catch (NumberFormatException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					return;
+					return wine;
 				} catch (JsonProcessingException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					return;
+					return wine;
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-					return;
+					return wine;
 				}
 		}
 
 		TblWinesGrapeVariety wineGrapeVariety = new TblWinesGrapeVariety();
 		wineGrapeVariety.setGrapeVariety(grapeVariety);
 		wineGrapeVariety.setWine(wine);
-
-		try {
-			wineGrapeVariety.setId(Integer.parseInt(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "WinesGrapeVarieties?action=addNew", this.mapper.writeValueAsString(wineGrapeVariety), null)));
-		} catch (JsonProcessingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		}
+System.out.println(wine.getTblWinesGrapeVariety());
+		wine.addTblWinesGrapeVariety(wineGrapeVariety);
+		System.out.println(wine.getTblWinesGrapeVariety());
+		return wine;
     }
 
     /**

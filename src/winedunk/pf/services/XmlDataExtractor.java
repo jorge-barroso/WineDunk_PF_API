@@ -7,7 +7,7 @@ import java.util.Map;
 import winedunk.pf.models.Tblpfmerchanthtmlparsing;
 import winedunk.pf.models.Tblpfproduct;
 
-public class XmlDataExtractor implements DataExtractor {
+public final class XmlDataExtractor implements DataExtractor {
 
 	private String token;
 
