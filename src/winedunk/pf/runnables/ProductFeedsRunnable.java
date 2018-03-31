@@ -135,7 +135,7 @@ public class ProductFeedsRunnable implements Runnable {
 							public void run() {
 								Tblpfproduct product;
 								try {
-									if(Boolean.parseBoolean(RequestsCreator.createGetRequest(crudUrl+"PFProductsBlacklist?partnerId="+pf.getPartnerId()+"&partnerProductId="+finalValues[pfMapping.getPartnerProductIdColumn()], null)))
+									if(Boolean.parseBoolean(RequestsCreator.createGetRequest(crudUrl+"PFProductsBlacklist?partnerId="+pf.getPartnerId().getId()+"&partnerProductId="+finalValues[pfMapping.getPartnerProductIdColumn()], null)))
 										return;
 
 									String parameters = "{ \"partnerProductId\"  : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\", "
