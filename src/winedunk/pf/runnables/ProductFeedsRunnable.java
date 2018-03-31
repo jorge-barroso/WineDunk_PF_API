@@ -138,10 +138,19 @@ public class ProductFeedsRunnable implements Runnable {
 									if(Boolean.parseBoolean(RequestsCreator.createGetRequest(crudUrl+"PFProductsBlacklist?partnerId="+pf.getPartnerId()+"&partnerProductId="+finalValues[pfMapping.getPartnerProductIdColumn()], null)))
 										return;
 
+									// aripe 2018-03-31
+									
+									/*
 									String parameters = "{ \"partnerProductId\"  : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\", "
 											  		  + "  \"merchantProductId\" : \"" + finalValues[pfMapping.getMerchantProductIdColumn()] + "\"}";
 
 									product = mapper.readValue(RequestsCreator.createPostRequest(crudUrl, "Products?action=findByPartnerProductIdAndMerchantProductId", parameters, null), Tblpfproduct.class);
+									*/
+									String parameters = "{ \"partnerId\"  : \"" + pf.getPartnerId() + "\", "
+													  + "  \"partnerProductId\" : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\"}";
+									product = mapper.readValue(RequestsCreator.createPostRequest(crudUrl+"Products?action=findByPartnerIdAndPartnerProductId", parameters, null), Tblpfproduct.class);
+							
+									
 								} catch (JsonParseException e) {
 									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
 									e.printStackTrace();

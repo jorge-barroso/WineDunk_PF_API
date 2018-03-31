@@ -147,7 +147,10 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			//System.out.println("get possibly existing wine and product");
 	    	tblPartnersProducts partnerProduct;
 			try {
-				partnerProduct = this.partnersProductsService.getProduct(product.getPartnerProductId(), product.getMerchantProductId());
+				// aripe 2018-03-31
+				partnerProduct = this.partnersProductsService.getProduct(product.getTblpf().getPartnerId().getId(), product.getPartnerProductId());
+				
+				// partnerProduct = this.partnersProductsService.getProduct(product.getPartnerProductId(), product.getMerchantProductId());
 			} catch (IOException e1) {
 				System.out.println("While trying to find a possible copy of the product already existing in the db (and retrieve it for edition) the CRUD wasn't reachable or there was a low-level I/O exception, please check the server");
 				e1.printStackTrace();

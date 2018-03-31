@@ -91,6 +91,22 @@ public class PartnersProductsService {
     	return this.mapper.readValue(productString, tblPartnersProducts.class);
 	}
 
+    // aripe 2018-03-31
+    public tblPartnersProducts getProduct(Integer partnertId, String partnerProductId) throws IOException
+    {
+    	//get possibly existing product by partnertId and partnerProductId
+    	String requestParameters = "action=getByPartnerIdAndPartnerProductId"
+    							 + "?partnerId="+partnertId
+ 		 						 + "&partnerProductId="+partnerProductId;
+    	
+    	String productString = RequestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters, null);
+    	
+    	if(productString.isEmpty())
+    		return new tblPartnersProducts();
+
+    	return this.mapper.readValue(productString, tblPartnersProducts.class);
+	}
+
     public Boolean delete(Integer id)
     {
     	try {
