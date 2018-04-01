@@ -29,7 +29,12 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 	@NamedQuery(name="Tblpfproduct.findByPartnerIdAndMerchantId", query="SELECT t FROM Tblpfproduct t "
 																	  + "WHERE t.merchantProductId = :merchantProductId "
 																	  	+ "AND t.partnerProductId = :partnerProductId "
-																	  + "ORDER BY t.merchantName")
+																	  + "ORDER BY t.merchantName"),
+	// aripe 2018-03-01, findByPartnerIdAndPartnerProductId added
+	@NamedQuery(name="Tblpfproduct.findByPartnerIdAndPartnerProductId", query="SELECT t FROM Tblpfproduct t "
+			  + "WHERE t.tblpf.partnerId.id = :partnerId "
+			  	+ "AND t.partnerProductId = :partnerProductId "
+			  + "ORDER BY t.merchantName")
 })
 @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class Tblpfproduct implements Serializable {
