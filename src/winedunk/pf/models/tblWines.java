@@ -1,7 +1,9 @@
 package winedunk.pf.models;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -16,6 +18,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
+
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
@@ -168,6 +171,8 @@ public final class tblWines {
 		this.winesByMerchant = null;
 		this.bestOffersByType = null;
 		this.avgRating = null;
+		
+		this.tblWinesGrapeVariety = new HashSet<TblWinesGrapeVariety>(3);
 	}
 
 	public tblWines(String name) {
