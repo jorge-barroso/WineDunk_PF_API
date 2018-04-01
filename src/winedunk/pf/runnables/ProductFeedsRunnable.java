@@ -146,7 +146,7 @@ public class ProductFeedsRunnable implements Runnable {
 
 									product = mapper.readValue(RequestsCreator.createPostRequest(crudUrl, "Products?action=findByPartnerProductIdAndMerchantProductId", parameters, null), Tblpfproduct.class);
 									*/
-									String parameters = "{ \"partnerId\"  : \"" + pf.getPartnerId() + "\", "
+									String parameters = "{ \"partnerId\"  : \"" + pf.getPartnerId().getId() + "\", "
 													  + "  \"partnerProductId\" : \"" + finalValues[pfMapping.getPartnerProductIdColumn()] + "\"}";
 									product = mapper.readValue(RequestsCreator.createPostRequest(crudUrl+"Products?action=findByPartnerIdAndPartnerProductId", parameters, null), Tblpfproduct.class);
 							

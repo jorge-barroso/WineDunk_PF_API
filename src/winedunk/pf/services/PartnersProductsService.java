@@ -96,7 +96,7 @@ public class PartnersProductsService {
     {
     	//get possibly existing product by partnertId and partnerProductId
     	String requestParameters = "action=getByPartnerIdAndPartnerProductId"
-    							 + "?partnerId="+partnertId
+    							 + "&partnerId="+partnertId
  		 						 + "&partnerProductId="+partnerProductId;
     	
     	String productString = RequestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters, null);
