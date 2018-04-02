@@ -273,9 +273,17 @@ public class WineService {
 	 * @throws JsonParseException 
 	 * @throws IOException 
 	 */
+	
+	/*
+	 * aripe 2018-04-02 get a single winery by using just name does not work
+	 * we need also countryId, regionId, appellarionId
+	 */
+
 	public tblWineries getWinery(String wineryName) throws JsonParseException, JsonMappingException, IOException
 	{
-		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
+		
+		// final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
+		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&countryId="+xxx+"&regionId="+xxx+"&appellationId="+xxx+"&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
 
 		final tblWineries winery = this.mapper.readValue(wineryJson, tblWineries.class);
 
