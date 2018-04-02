@@ -271,12 +271,12 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				return null;
 			}
 
-			//set current product values
-			partnerProduct = this.setPartnerProductsValues(partnerProduct, product, wine);
 			//try {
 			//if we have an id it was already in the db so we update it, otherwise, we insert it
 			if(partnerProduct.getId()==null)
 			{
+				//set current product values
+				partnerProduct = this.setPartnerProductsValues(partnerProduct, product, wine);
 				//System.out.println("INSERTING PRODUCT");
 				try {
 					partnerProduct.setId(this.partnersProductsService.insertProduct(partnerProduct));
@@ -298,7 +298,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			{
 				//System.out.println("UPDATING PRODUCT");
 				try {
-					this.partnersProductsService.updateProduct(partnerProduct);
+					this.partnersProductsService.updateProduct(partnerProduct.getId(), product.getPrice());
 				} catch (JsonProcessingException e2) {
 					System.out.println("An exception came up while serialising the product to JSON before sending it for update in the database");
 					e2.printStackTrace();
@@ -434,19 +434,19 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			 * Just checking which one is bigger would be easier but this way we avoid possible null pointer exceptions
 			 * As the AND condition stops checking any more conditions once one is false, if it's null it won't check the length and we will avoid the exception 
 			 */
-	
+
 			if((wine.getDefaultDescription()!=null && description.length()>wine.getDefaultDescription().length()) || wine.getDefaultDescription()==null)
 			{
 				wine.setDefaultDescription(description);
 				wine.setShortDescription(description.length()>160 ? (description.substring(0, 161)+"...") : description);
 			}
-	
+
 			wine.setDeleted(false);
 			wine.setAbv(NumberUtils.isCreatable(wineValues.get(TblWineFields.ABV)) ? Float.parseFloat(wineValues.get(TblWineFields.ABV)) : null);
 			wine.setBottleSize(NumberUtils.isCreatable(wineValues.get(TblWineFields.BOTTLE_SIZE)) ? Float.parseFloat(wineValues.get(TblWineFields.BOTTLE_SIZE)) : null);
 			wine.setVintage(NumberUtils.isCreatable(wineValues.get(TblWineFields.VINTAGE)) ? Integer.parseInt(wineValues.get(TblWineFields.VINTAGE)) : null);
 			wine.setGtin(wineValues.get(TblWineFields.GTIN));
-	
+
 			//Get Closure
 			tblClosures closure;
 			try {
@@ -467,7 +467,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				e1.printStackTrace();
 				return null;
 			}
-	
+
 			if(closure.getId()==null)
 			{
 				closure.setDeleted(false);
@@ -525,10 +525,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			//Get Winery
 			tblWineries winery;
 			try {
-				if(!StringUtils.isBlank(wineValues.get(TblWineFields.WINERY)))
-					winery = this.wineService.getWinery(wineValues.get(TblWineFields.WINERY));
-				else
-					winery = this.wineService.getWinery(NoDataFieldsValues.NO_WINERY);
+				winery = this.wineService.getWinery(wineValues.getOrDefault(TblWineFields.COUNTRY, ""), wineValues.getOrDefault(TblWineFields.REGION, ""), wineValues.getOrDefault(TblWineFields.APPELLATION, ""), wineValues.getOrDefault(TblWineFields.WINERY, NoDataFieldsValues.NO_WINERY));
 			} catch (JsonParseException e1) {
 				System.out.println("While trying to get the winery by its name from the CRUD, the response doesn't seem to have a valid JSON format");
 				e1.printStackTrace();

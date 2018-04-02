@@ -62,9 +62,11 @@ public class PartnersProductsService {
      * @throws JsonProcessingException
      * @throws IOException
      */
-    public Boolean updateProduct(tblPartnersProducts product) throws JsonProcessingException, IOException
+    public Boolean updateProduct(Integer id, Float price) throws JsonProcessingException, IOException
     {
-    	String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", mapper.writeValueAsString(product), null);
+    	final String body = "{ id : " + id + ", " +
+    						"price : "+ price + " }"; 
+    	final String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", body, null);
     	return Boolean.valueOf(response);
     }
 

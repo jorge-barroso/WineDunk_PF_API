@@ -279,11 +279,11 @@ public class WineService {
 	 * we need also countryId, regionId, appellarionId
 	 */
 
-	public tblWineries getWinery(String wineryName) throws JsonParseException, JsonMappingException, IOException
+	public tblWineries getWinery(final String country, final String region, final String appellation, final String wineryName) throws JsonParseException, JsonMappingException, IOException
 	{
 		
 		// final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
-		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&countryId="+xxx+"&regionId="+xxx+"&appellationId="+xxx+"&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
+		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&countryId="+country+"&regionId="+region+"&appellationId="+appellation+"&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
 
 		final tblWineries winery = this.mapper.readValue(wineryJson, tblWineries.class);
 
