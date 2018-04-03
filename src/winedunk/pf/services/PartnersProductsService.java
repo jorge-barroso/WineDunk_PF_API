@@ -64,9 +64,13 @@ public class PartnersProductsService {
      */
     public Boolean updateProduct(Integer id, Float price) throws JsonProcessingException, IOException
     {
-    	final String body = "{ id : " + id + ", " +
-    						"price : "+ price + " }"; 
-    	final String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProducts", body, null);
+    	// aripe 2018-04-03
+    	final String body = "{" + 
+    	"\"id\" : \"" + id + "\"," + 
+    	"\"partnerProductPrice\" : \"" + price + "\"" + 
+    	"}";
+    	
+    	final String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=updatePartnersProductsPrice", body, null);
     	return Boolean.valueOf(response);
     }
 
