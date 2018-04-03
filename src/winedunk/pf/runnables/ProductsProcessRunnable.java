@@ -157,9 +157,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				return null;
 			}
 
-			if(partnerProduct.getLastUpdated()!=null && product.getTblpf().getLastImportation()!=null)
+			if(partnerProduct.getLastUpdated()!=null && product.getTblpf().getLastStandardisation()!=null)
 			{
-				if(partnerProduct.getLastUpdated().getTime()>product.getTblpf().getLastImportation().getTime())
+				if(partnerProduct.getLastUpdated().getTime()>product.getTblpf().getLastStandardisation().getTime())
 					return null;
 			}
 
