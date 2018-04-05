@@ -35,6 +35,7 @@ import winedunk.pf.models.tblAppellations;
 import winedunk.pf.models.tblClosures;
 import winedunk.pf.models.tblColours;
 import winedunk.pf.models.tblGrapeVarieties;
+import winedunk.pf.models.tblPartnersMerchants;
 import winedunk.pf.models.tblPartnersProducts;
 import winedunk.pf.models.tblRegions;
 import winedunk.pf.models.tblShops;
@@ -329,8 +330,10 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     private List<Tblpfmerchanthtmlparsing> getParsingInstructions(String merchantName)
     {
     	try {
-			tblShops merchant = this.getMerchant(merchantName);
-	
+    		// aripe 2018-04-05
+			//tblShops merchant = this.getMerchant(merchantName);
+    		tblShops merchant = this.getMerchantBypartnerMerchantName(merchantName).getShop();
+    		
 			if(merchant.getId()==null)
 			{
 				System.out.println("Couldn't find merchant, so no parsing data can be provided");
@@ -380,7 +383,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      */
     private Map<String, String> getWineValues(Tblpfproduct product, List<Tblpfmerchanthtmlparsing> merchantParsings) throws Exception
     {
-    	DataSource dataSource = this.getMerchant(product.getMerchantName()).getDataSource();
+		// aripe 2018-04-05
+		// DataSource dataSource = this.getMerchant(product.getMerchantName()).getDataSource();
+    	DataSource dataSource = this.getMerchantBypartnerMerchantName(product.getMerchantName()).getShop().getDataSource();
 
     	ProductService productService = new ProductService();
 
@@ -868,7 +873,12 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     					.setPartnerMerchantStock(null)
     					.setPartnerProductId(productStandard.getPartnerProductId())
     					.setPartnerProductPrice(productStandard.getPrice())
-    					.setShopId(this.getMerchant(productStandard.getMerchantName()))
+    					
+    					
+    					// aripe 2018-04-05
+    					// .setShopId(this.getMerchant(productStandard.getMerchantName()))
+    					.setShopId(this.getMerchantBypartnerMerchantName(productStandard.getMerchantName()).getShop())
+    					
     					.setTblWines(wine);
     	return partnersProducts;
     }
@@ -1076,4 +1086,35 @@ System.out.println(wine.getTblWinesGrapeVariety());
 		}
 		return new tblShops();
     }
+    
+    private tblPartnersMerchants getMerchantBypartnerMerchantName(String partnerMerchantName)
+    {
+		// aripe 2018-04-05, new table `tblPartnersMerchants` created to store partner merchants info (tblShops might contain different names)
+    	String merchantJson;
+		try {
+			
+			merchantJson = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "partnersMerchants?action=getPartnersMerchantsBypartnerMerchantName&partnerMerchantName="+URLEncoder.encode(partnerMerchantName, "UTF-8"), null);
+			
+		} catch (IOException e) {
+			System.out.println("Couldn't reach the CRUD while trying to get \"getMerchantBypartnerMerchantName(" + partnerMerchantName + ")\"");
+			e.printStackTrace();
+			return new tblPartnersMerchants();
+		}
+
+		//parse json to an object and return it
+		try {
+			return this.mapper.readValue(merchantJson, tblPartnersMerchants.class);
+		} catch (JsonParseException e) {
+			System.out.println("While trying to get the MerchantBypartnerMerchantName, the JSON response by the CRUD doesn't seem to have a valid format");
+			e.printStackTrace();
+		} catch (JsonMappingException e) {
+			System.out.println("While trying to get the MerchantBypartnerMerchantName, the JSON response by the CRUD couldn't be mapped with a valid tblShops object");
+			e.printStackTrace();
+		} catch (IOException e) {
+			System.out.println("While trying to get the MerchantBypartnerMerchantName, a low level I/O exception occurred");
+			e.printStackTrace();
+		}
+		return new tblPartnersMerchants();
+    }
+    
 }
