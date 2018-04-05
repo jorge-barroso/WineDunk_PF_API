@@ -332,7 +332,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	try {
     		// aripe 2018-04-05
 			//tblShops merchant = this.getMerchant(merchantName);
-    		tblShops merchant = this.getMerchantBypartnerMerchantName(merchantName).getShop();
+    		tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(merchantName);
+    		tblShops merchant = partnersMerchants.getShop();
     		
 			if(merchant.getId()==null)
 			{
@@ -385,7 +386,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     {
 		// aripe 2018-04-05
 		// DataSource dataSource = this.getMerchant(product.getMerchantName()).getDataSource();
-    	DataSource dataSource = this.getMerchantBypartnerMerchantName(product.getMerchantName()).getShop().getDataSource();
+    	
+    	tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(product.getMerchantName());
+    	DataSource dataSource = partnersMerchants.getShop().getDataSource();
 
     	ProductService productService = new ProductService();
 
@@ -862,6 +865,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      */
     private tblPartnersProducts setPartnerProductsValues(tblPartnersProducts partnersProducts, Tblpfproduct productStandard, tblWines wine)
     {
+    	tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(productStandard.getMerchantName());
     	partnersProducts.setDeleted(false)
     					.setDeletedDate(null)
     					.setLastUpdated(this.executionDate)
@@ -874,10 +878,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     					.setPartnerProductId(productStandard.getPartnerProductId())
     					.setPartnerProductPrice(productStandard.getPrice())
     					
-    					
     					// aripe 2018-04-05
     					// .setShopId(this.getMerchant(productStandard.getMerchantName()))
-    					.setShopId(this.getMerchantBypartnerMerchantName(productStandard.getMerchantName()).getShop())
+    					.setShopId(partnersMerchants.getShop())
     					
     					.setTblWines(wine);
     	return partnersProducts;
