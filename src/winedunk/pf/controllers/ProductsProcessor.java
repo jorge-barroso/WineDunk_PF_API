@@ -237,6 +237,52 @@ public class ProductsProcessor extends HttpServlet {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
 					e.printStackTrace();
 				}
+				
+				// aripe 2018-04-07
+				// calling the crud to execute stored procedure spUpdateCountriesWithWines
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateCountriesWithWines", null);
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateCountriesWithWines()\"");
+					e.printStackTrace();
+				}
+				
+				// aripe 2018-04-07
+				// calling the crud to execute stored procedure spUpdateRecommendedWines
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateRecommendedWines", null);
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateRecommendedWines()\"");
+					e.printStackTrace();
+				}
+				
+				// aripe 2018-04-07
+				// calling the crud to execute stored procedure spUpdateBestOffersbyCountry
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyCountry", null);
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyCountry()\"");
+					e.printStackTrace();
+				}
+				
+				// aripe 2018-04-07
+				// calling the crud to execute stored procedure spUpdateBestOffersbyMerchants
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyMerchants", null);
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyMerchants()\"");
+					e.printStackTrace();
+				}
+				
+				// aripe 2018-04-07
+				// calling the crud to execute stored procedure spUpdateBestOffersbyWineType
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyWineType", null);
+				} catch (IOException e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyWineType()\"");
+					e.printStackTrace();
+				}
+				
 			}
 
 			/**
