@@ -242,7 +242,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	    	//System.out.println("GETTING IMAGE");
 			if(wine.getImageURL()==null /*TODO || blank "no-image" image and this product contains a valid image*/)
 			{
-				String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
+				final String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
 				wineService.getImage(finalImageName, product.getImageURL());			
 
 				wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
@@ -1048,51 +1048,15 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		TblWinesGrapeVariety wineGrapeVariety = new TblWinesGrapeVariety();
 		wineGrapeVariety.setGrapeVariety(grapeVariety);
 		wineGrapeVariety.setWine(wine);
-System.out.println(wine.getTblWinesGrapeVariety());
+
 		wine.addTblWinesGrapeVariety(wineGrapeVariety);
-		System.out.println(wine.getTblWinesGrapeVariety());
+
 		return wine;
     }
 
-    /**
-     * 
-     * @param merchantName
-     * @return
-     * @throws JsonParseException
-     * @throws JsonMappingException
-     * @throws IOException
-     */
-    private tblShops getMerchant(String merchantName)
-    {
-    	//get merchant
-    	String merchantJson;
-		try {
-			merchantJson = RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "shops?action=getByName&name="+URLEncoder.encode(merchantName, "UTF-8"), null);
-		} catch (IOException e) {
-			System.out.println("Couldn't reach the CRUD while trying to get the merchant by its name");
-			e.printStackTrace();
-			return new tblShops();
-		}
-
-		//parse json to an object and return it
-		try {
-			return this.mapper.readValue(merchantJson, tblShops.class);
-		} catch (JsonParseException e) {
-			System.out.println("While trying to get the merchant, the JSON response by the CRUD doesn't seem to have a valid format");
-			e.printStackTrace();
-		} catch (JsonMappingException e) {
-			System.out.println("While trying to get the merchant, the JSON response by the CRUD couldn't be mapped with a valid tblShops object");
-			e.printStackTrace();
-		} catch (IOException e) {
-			System.out.println("While trying to get the merchant, a low level I/O exception occurred");
-			e.printStackTrace();
-		}
-		return new tblShops();
-    }
     
     private tblPartnersMerchants getMerchantBypartnerMerchantName(String partnerMerchantName)
     {
-		// aripe 2018-04-05, new table `tblPartnersMerchants` created to store partner merchants info (tblShops might contain different names)
     	String merchantJson;
 		try {
 			
