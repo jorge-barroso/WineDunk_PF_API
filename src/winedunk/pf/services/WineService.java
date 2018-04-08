@@ -285,7 +285,7 @@ public class WineService {
 		// final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
 		final String wineryJson = RequestsCreator.createGetRequest(this.apiUrl, "wineries?action=getByName&countryName="+URLEncoder.encode(country, "UTF-8")+"&regionName="+URLEncoder.encode(region, "UTF-8")+"&appellationName="+URLEncoder.encode(appellation, "UTF-8")+"&name="+URLEncoder.encode(wineryName.trim(), "UTF-8"), null);
 
-		final tblWineries winery = this.mapper.readValue(wineryJson, tblWineries.class);
+		final tblWineries winery = wineryJson.isEmpty() ? new tblWineries() : this.mapper.readValue(wineryJson, tblWineries.class);
 
 		if(winery.getId()==null)
 			winery.setName(wineryName.trim());
