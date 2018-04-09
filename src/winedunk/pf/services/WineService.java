@@ -135,7 +135,9 @@ public class WineService {
 		tblCountries country;
 		try {
 			final String countryJson = RequestsCreator.createGetRequest(this.apiUrl, "countries?action=getByName&name="+URLEncoder.encode(countryName, "UTF-8"), null);
-			country = this.mapper.readValue(countryJson, tblCountries.class);
+
+			if(!countryJson.isEmpty());
+				country = this.mapper.readValue(countryJson, tblCountries.class);
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
