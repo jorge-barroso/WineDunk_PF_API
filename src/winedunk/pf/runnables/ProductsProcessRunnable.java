@@ -85,9 +85,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	@Override
 	public Integer call() {
 		try {
-			System.out.println("Processing wine number "+j);
+			System.out.println("Processing wine number " + j + "[partnerId=" + product.getTblpf().getPartnerId().getId() + ", partnerProductId=" + product.getPartnerProductId() + "] {");
 			Integer id = productProcess(product);
-			System.out.println("Wine "+j+" processed");
+			System.out.println("} // Wine "+j+" processed");
 			return id;
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -99,7 +99,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      * 
      * @param product
      */
-    private Integer productProcess(Tblpfproduct product)
+	// aripe 2018-04-10, I'm applying important changes to the logic of this process so I'm keeping a copy just in case
+    private Integer productProcess_OLD_DO_NOT_USE(Tblpfproduct product)
     {
     	this.wineService = new WineService(properties);
 		this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
@@ -316,6 +317,312 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     		return null;
     	}
     }
+    
+    private Integer productProcess(Tblpfproduct product) {
+    	// aripe 2018-04-10 whole process logic has been changed
+
+		if ( (product != null) &&
+			 (product.getTblpf().getPartnerId() != null) &&
+			 (product.getTblpf().getPartnerId().getId() > 0) &&
+			 (product.getPartnerProductId() != "") &&
+			 (product.getClicktag() != "") &&
+			 (product.getName() != "") &&
+			 (product.getProductURL() != "") 
+		   ) {
+			
+			// main mandatory information exists in PF so we start
+			
+			this.wineService = new WineService(properties);
+			this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
+			
+			// looking if current product exits in `tblPartnersProducts`
+	    	tblPartnersProducts partnerProduct = new tblPartnersProducts();
+			try {
+				partnerProduct = this.partnersProductsService.getProduct(product.getTblpf().getPartnerId().getId(), product.getPartnerProductId());
+				
+				if ( (partnerProduct != null) && (partnerProduct.getId() != null) && (partnerProduct.getId() > 0) ) {
+					
+					System.out.println("	partnerProduct = " + partnerProduct);
+					
+					// we already got this product
+			    	// checking if current product should be update or not based on `tblPartnersProducts`.`lastUpdated`
+			    	
+					System.out.println("	Existing product found in `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `wineId`=" + partnerProduct.getTblWines().getId() + ", `shopId`=" + partnerProduct.getShopId().getId());
+					if ((partnerProduct.getLastUpdated() == null) ||
+						(
+							(partnerProduct.getLastUpdated() != null) &&
+							(product.getTblpf().getLastStandardisation() != null) &&
+							(partnerProduct.getLastUpdated().getTime() < product.getTblpf().getLastStandardisation().getTime())
+						)) {
+						
+						// if either "partnerProduct.getLastUpdated() == null" or "partnerProduct.getLastUpdated()" is older than product.getTblpf().getLastStandardisation(), we have to process this product
+			    		// checking if product price has to be updated
+			    		if (product.getPrice() != null) {
+			    		
+			    			if (!partnerProduct.getPartnerProductPrice().equals(product.getPrice())) {
+				    			// updating price
+				    			if (partnersProductsService.updateProduct(partnerProduct.getId(), product.getPrice())) {
+				    				System.out.println("	Product price updated: `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice());
+				    				return partnerProduct.getId();
+				    			} else {
+				    				System.out.println("	Atention! - Product price not updated in existing product in `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice());
+				    				return null;
+				    			}
+				    		} else {
+				    			// price in PF is the same as the one in `tblPartnersProducts`.`partnerProductPrice`, so there is no change, nothing to do here
+				    			System.out.println("	Product price not updated in `tblPartnersProducts` because PF price and partnerProductPrice are the same | `id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", PF price=" + product.getPrice());
+				    			return null;
+				    		}
+			    			
+			    		} else {
+			    			// the price that comes into PF is null, so nothing to do here, just report it
+			    			System.out.println("	Atention! - Product price not updated because PF product price = null: PF partnerId=" + product.getTblpf().getPartnerId().getId() + ", PF partnerproductId=" + product.getPartnerProductId());
+			    			return null;
+			    		}
+			    		
+			    	} else {
+			    		// "partnerProduct.getLastUpdated()" newer than "product.getTblpf().getLastStandardisation()"
+			    		System.out.println("	Product price not updated because existing product `LastUpdated`=" + partnerProduct.getLastUpdated().toString() + " is newer than PF `LastStandardisation`=" + product.getTblpf().getLastStandardisation().toString()); 
+			    		return null;
+			    	}
+			    	
+				} else {
+					
+					// NEW PRODUCT
+
+					System.out.println("	Existing product not found by `partnerId`=" + product.getTblpf().getPartnerId().getId() + " and `partnerProductId`=" + product.getPartnerProductId() + " - processing it as a NEW product");
+    				// getting partnersMerchant based on partnerMerchantName to be used later on
+    				tblPartnersMerchants partnersMerchant = this.getMerchantBypartnerMerchantName(product.getMerchantName());
+					
+					//Get wine values by parsing the website
+					
+			    	// Getting  Merchant parsing from `tblPFMerchantHTMLParsing`
+					Map<String, String> wineValues=null;
+					List<Tblpfmerchanthtmlparsing> merchantParsing = this.getParsingInstructions(product.getMerchantName());
+
+					if(!merchantParsing.isEmpty()) {
+					
+						try {
+							wineValues = this.getWineValues(product, merchantParsing);
+						} finally {
+							if(wineValues==null) 
+								wineValues = new HashMap<String, String>();
+						}
+						
+					} else {
+						System.out.println("	Atention! no parsing found for merchant " + product.getMerchantName() + " - new product [partnerId="+product.getTblpf().getPartnerId().getId()+", partnerProductId="+product.getPartnerProductId()+"] could not be added");
+						return null; 
+					}
+					
+					// extracting wine colour from wine type
+					if(!wineValues.containsKey(TblWineFields.COLOUR))
+					{
+						if(StringUtils.containsIgnoreCase(product.getProductType(), Colours.RED))
+							wineValues.put(TblWineFields.COLOUR, Colours.RED);
+						else if(StringUtils.containsIgnoreCase(product.getProductType(), Colours.WILDCARD_ROSE))
+							wineValues.put(TblWineFields.COLOUR, Colours.ROSE);
+						else if(StringUtils.containsIgnoreCase(product.getProductType(), Colours.WHITE))
+							wineValues.put(TblWineFields.COLOUR, Colours.WHITE);
+					}
+					
+					// creating new wine instance
+					tblWines wine = new tblWines();
+					
+					//setting wine values
+			    	wine = this.setWineValues(wine, wineValues, product.getName(), product.getPartnerProductDescription());
+			    	
+			    	if(Thread.currentThread().isInterrupted())
+			    	{
+			    		System.out.println("	Atention! an exception caused this thread to be interrupted while generating wine: [partnerId = " + product.getTblpf().getPartnerId().getId() + ", partnerProductId = " + product.getPartnerProductId() + ", productname = " + product.getName() + "]");
+			    		return null;
+			    	}
+			    	
+			    	// Sanitise the name removing unwanted details and extract those details as possible values for other fields in the tblWines table
+					try {
+						wine = this.wineService.completeDataFromName(wine, product.getMerchantName());
+					} catch(Exception e) {
+						e.printStackTrace();
+						return null;
+					}
+					
+					// looking if new wine already exists in `tblWines` based on (GTIN) or (Name + bottle size + vintage)
+					System.out.println("	Looking if potential new wine exists in `tblWines` based on (`gtin`=\"" + wineValues.get(TblWineFields.GTIN) + "\") or (`name`=\"" + wine.getName() + "\" and `bottleSize`=\"" + wineValues.get(TblWineFields.BOTTLE_SIZE) + "\" and `vintage`=\"" + wineValues.get(TblWineFields.VINTAGE) + "\") ");
+					tblWines existingWine;
+			    	try {
+			    		existingWine = this.wineService.getInstance(wine.getName(),
+			    													wineValues.get(TblWineFields.GTIN),
+																	wineValues.get(TblWineFields.BOTTLE_SIZE),
+																	wineValues.get(TblWineFields.VINTAGE));
+					} catch (JsonParseException e4) {
+						System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+						e4.printStackTrace();
+						return null;
+					} catch (JsonMappingException e4) {
+						System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+						e4.printStackTrace();
+						return null;
+					} catch (IOException e4) {
+						System.out.println("	Atention! while trying to find the possibly existing wine, the CRUD couldn't be reached or a low level I/O exception arised mapping the response, check the server status");
+						e4.printStackTrace();
+						return null;
+					}
+			    	
+			    	if (existingWine == null) {
+			    		
+			    		System.out.println("	No existing wine was found in `tblWines`, considering it as a NEW wine");
+			    		// no existing wine was found, we have to get it inserted as a new wine
+			    		if (wine.getId() == null) {
+							try {
+								// flagging new wine as deleted = yes, so it won't be displayed until manually reviewed
+								wine.setDeleted(true);
+								// inserting new wine
+								wine.setId(this.wineService.insertWine(wine));
+							} catch (NumberFormatException e) {
+								System.out.println("	Atention! Id returned by the CRUD while inserting the wine was not a proper number");
+								e.printStackTrace();
+								return null;
+							} catch (JsonProcessingException e) {
+								System.out.println("	Atention! An exception came up while serialising the wine to JSON before sending it for insertion in the database");
+								e.printStackTrace();
+								return null;
+							} catch (IOException e) {
+								System.out.println("	Atention! While sending the wine to the CRUD for insertion, the CRUD was not reachable");
+								e.printStackTrace();
+								return null;
+							}
+						} else {
+							// something very weird has happened (a new wine had an Id)
+							System.out.println("	Atention! Logical ERROR: a wine supposed to be new had an Id in it: [partnerId=" + product.getTblpf().getPartnerId().getId() + ", partnerProductId=" + product.getPartnerProductId() + ", wine=" + wine + "]");
+							return null;
+						}
+			    		
+			    		if (wine.getId() > 0) {
+			    			// new wine has been added
+			    			System.out.println("	New wine added into `tblWines`| `id`=" + wine.getId());
+			    			
+			    			// setting wine image
+			    			final String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
+			    			wineService.getImage(finalImageName, product.getImageURL());
+			    			wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
+			    			if ((wine.getImageURL() == null) || (wine.getImageURL() == "")) {
+			    				System.out.println("	Atention! `tblWines`.`imageURL` not set up");
+			    			}
+			    			
+			    			// setting grape varieties
+			    			if(!StringUtils.isBlank(wineValues.get(TblWineFields.WINE_GRAPEVARIETY)))
+			    	    	{
+			    	    		String[] grapeVarieties = wineValues.get(TblWineFields.WINE_GRAPEVARIETY).split(",|-|\\s+and\\s+");
+			    	        	for(String grapeVariety : grapeVarieties)
+			    	        	{
+			    	        		grapeVariety = grapeVariety.trim();
+			    	        		if (!StringUtils.isBlank(grapeVariety)) {
+			    	        			wine = this.setWinesGrapeVarieties(grapeVariety, wine);
+			    	        			System.out.println("	Grape varieties linked to the wine | `wineId`=" + wine.getId() + ", grapeVariety = " + grapeVariety);
+			    	        		}
+			    	        	}
+			    	    	}
+			    			
+			    			// setting wine types
+			    			if(!StringUtils.isBlank(wineValues.get(TblWineFields.WINE_TYPE)) && wineValues.get(TblWineFields.WINE_TYPE).length()<=100) {
+			    				this.setWinesWineType(wine, wineValues.get(TblWineFields.WINE_TYPE));
+			    				System.out.println("	Wine types linked to the wine | `wineId`=" + wine.getId() + ", winetypes = " + wineValues.get(TblWineFields.WINE_TYPE));
+			    			} else if(!StringUtils.isBlank(product.getProductType())) {
+			    				this.setWinesWineType(wine, product.getProductType());
+			    				System.out.println("	Wine types linked to the wine | `wineId`=" + wine.getId() + ", winetypes = " + product.getProductType());
+			    			} else {
+			    				this.setWinesWineType(wine, NoDataFieldsValues.NO_WINETYPE);	
+			    				System.out.println("	Atention! no wine types have been linked to the new wine");
+			    			}
+			    			
+			    			// updating wine after setting imageURL + grape varieties + wine types
+			    			System.out.println("	updating wine with imageURL, grape varieties and wine types");
+			    			if (this.wineService.updateWine(wine)) {
+			    				// new wine updated
+			    				
+			    				// taking care of `tblPartnersProducts`
+			    				partnerProduct = new tblPartnersProducts();
+			    				partnerProduct.setPartnerId(product.getTblpf().getPartnerId());
+			    				partnerProduct.setTblWines(wine);
+			    				partnerProduct.setShopId(partnersMerchant.getShop());
+			    				partnerProduct.setPartnerProductId(product.getPartnerProductId());
+			    				partnerProduct.setPartnerProductPrice(product.getPrice());
+			    				partnerProduct.setPartnerDestinationUrl(product.getProductURL());
+			    				partnerProduct.setPartnerMerchantId(product.getPartnerMerchantId());
+			    				partnerProduct.setPartnerMerchantProductId(product.getMerchantProductId());
+			    				partnerProduct.setPartnerMerchantStock(null);
+			    				partnerProduct.setPartnerMerchantDeliveringCost(product.getDeliveryCost());
+			    				
+			    				// flagging partnerProduct related to new wine as deleted = yes, so it won't be displayed until manually reviewed
+			    				partnerProduct.setDeleted(true);
+			    				
+			    				Integer newPartnerProductId = this.partnersProductsService.insertProduct(partnerProduct);
+			    				if ( (newPartnerProductId != null) && (newPartnerProductId > 0) ) {
+			    					// all done!
+			    					System.out.println("	A new record has been added to `tblPartnersProducts` [`id`=" + newPartnerProductId + "]");
+			    					return newPartnerProductId;
+			    				} else {
+			    					System.out.println("	Atention! New wine: [" + wine + "] has been added to `tblWines` but was not possible to add the record into `tblPartnersProducts`, partnerProduct=\"" + partnerProduct + "\"");
+				    				return null;
+			    				}
+			    				
+			    			} else {
+			    				// new wine couldn't be updated
+			    				System.out.println("	Atention! New wine: [" + wine + "] has been added to `tblWines` but ImageURL=\"" + product.getImageURL() + "\", grape varieties=" + wineValues.get(TblWineFields.WINE_GRAPEVARIETY) + " and wineTypes=" + wineValues.get(TblWineFields.WINE_TYPE) + " have not been updated");
+			    				return null;
+			    			}
+			    			
+			    		} else {
+			    			System.out.println("	Atention! An error ocurred while inserting new wine [partnerId=" + product.getTblpf().getPartnerId().getId() + ", partnerProductId=" + product.getPartnerProductId() + ", wine=" + wine + "]");
+							return null;
+			    		}
+			    		
+			    	} else {
+			    		// existing wine found!
+			    		// using existing wine Id for inserting `tblPartnersProducts`
+			    		
+			    		System.out.println("	An existing wine (`tblWines`.`id`=" + wine.getId() + ") has been found in `tblWines` based on (`gtin`=" + wineValues.get(TblWineFields.GTIN) + ") or (`name`=" + wine.getName() + " and `bottleSize`=" + wineValues.get(TblWineFields.BOTTLE_SIZE) + " and `vintage`=" + wineValues.get(TblWineFields.VINTAGE) + ") ");
+			    		
+	    				partnerProduct = new tblPartnersProducts();
+	    				partnerProduct.setPartnerId(product.getTblpf().getPartnerId());
+	    				partnerProduct.setTblWines(wine);
+	    				partnerProduct.setShopId(partnersMerchant.getShop());
+	    				partnerProduct.setPartnerProductId(product.getPartnerProductId());
+	    				partnerProduct.setPartnerProductPrice(product.getPrice());
+	    				partnerProduct.setPartnerDestinationUrl(product.getProductURL());
+	    				partnerProduct.setPartnerMerchantId(product.getPartnerMerchantId());
+	    				partnerProduct.setPartnerMerchantProductId(product.getMerchantProductId());
+	    				partnerProduct.setPartnerMerchantStock(null);
+	    				partnerProduct.setPartnerMerchantDeliveringCost(product.getDeliveryCost());
+	    				
+	    				// flagging partnerProduct related to new wine as deleted = yes, so it won't be displayed until manually reviewed
+	    				partnerProduct.setDeleted(true);
+	    				
+	    				Integer newPartnerProductId = this.partnersProductsService.insertProduct(partnerProduct);
+	    				if ( (newPartnerProductId != null) && (newPartnerProductId > 0) ) {
+	    					// all done!
+	    					System.out.println("	A new record has been added to `tblPartnersProducts` [`id`=" + newPartnerProductId + "]");
+	    					return newPartnerProductId;
+	    				} else {
+	    					System.out.println("	Atention! New wine: [" + wine + "] has been added to `tblWines` but was not possible to add the registre into `tblPartnersProducts`, partnerProduct=\"" + partnerProduct + "\"");
+		    				return null;
+	    				}
+	    				
+			    	}
+					
+				} // End new product
+
+			} catch (Exception e) {
+				System.out.println("	Atention! Exception at winedunk.pf.runnables/productProcess(Tblpfproduct product) - StackTrace:");
+				e.printStackTrace();
+				return null;
+			}
+			
+		} else {
+			// missing mandatory information, so we do not process this product at all
+			return null;
+		}
+		
+    }
 
     /**
      * Here we get the parsing instructions for each value and the html
@@ -327,12 +634,12 @@ public class ProductsProcessRunnable implements Callable<Integer>{
      * @throws JsonMappingException 
      * @throws JsonParseException 
      */
-    private List<Tblpfmerchanthtmlparsing> getParsingInstructions(String merchantName)
+    private List<Tblpfmerchanthtmlparsing> getParsingInstructions(String pfMerchantName)
     {
     	try {
     		// aripe 2018-04-05
 			//tblShops merchant = this.getMerchant(merchantName);
-    		tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(merchantName);
+    		tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(pfMerchantName);
     		tblShops merchant = partnersMerchants.getShop();
     		
 			if(merchant.getId()==null)
