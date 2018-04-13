@@ -52,7 +52,15 @@ public class PartnersProductsService {
     public Integer insertProduct(tblPartnersProducts product) throws NumberFormatException, JsonProcessingException, IOException
     {
     	String response = RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=addPartnersProducts", this.mapper.writeValueAsString(product), null);
-    	return Integer.parseInt(response);
+    	if ( !response.isEmpty() ) {
+    		try {
+    			return Integer.parseInt(response);
+    		} catch (Exception e){
+    			return 0;
+    		}
+    	} else {
+    		return 0;
+    	}
     }
 
     /**

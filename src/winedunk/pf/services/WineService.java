@@ -132,12 +132,14 @@ public class WineService {
 				return this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 			}
 
-		tblCountries country;
+		tblCountries country = new tblCountries();
 		try {
 			final String countryJson = RequestsCreator.createGetRequest(this.apiUrl, "countries?action=getByName&name="+URLEncoder.encode(countryName, "UTF-8"), null);
 
-			if(!countryJson.isEmpty());
+			if ( !countryJson.isEmpty() ) {
 				country = this.mapper.readValue(countryJson, tblCountries.class);
+			}
+				
 		} catch (JsonParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
