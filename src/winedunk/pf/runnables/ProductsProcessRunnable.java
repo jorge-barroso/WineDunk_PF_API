@@ -444,30 +444,69 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 					}
 					
 					// looking if new wine already exists in `tblWines` based on (GTIN) or (Name + bottle size + vintage)
-					System.out.println("	Looking if potential new wine exists in `tblWines` based on (`gtin`=\"" + wineValues.get(TblWineFields.GTIN) + "\") or (`name`=\"" + wine.getName() + "\" and `bottleSize`=\"" + wineValues.get(TblWineFields.BOTTLE_SIZE) + "\" and `vintage`=\"" + wineValues.get(TblWineFields.VINTAGE) + "\") ");
+					
 					tblWines existingWine;
-			    	try {
-			    		existingWine = this.wineService.getInstance(wine.getName(),
-			    													wineValues.get(TblWineFields.GTIN),
-																	wineValues.get(TblWineFields.BOTTLE_SIZE),
-																	wineValues.get(TblWineFields.VINTAGE));
-					} catch (JsonParseException e4) {
-						System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
-						e4.printStackTrace();
-						return null;
-					} catch (JsonMappingException e4) {
-						System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
-						e4.printStackTrace();
-						return null;
-					} catch (IOException e4) {
-						System.out.println("	Atention! while trying to find the possibly existing wine, the CRUD couldn't be reached or a low level I/O exception arised mapping the response, check the server status");
-						e4.printStackTrace();
-						return null;
+					
+					if ( (wineValues.get(TblWineFields.GTIN) != null) || 
+						 ( (wine.getName() != null) && (wine.getName() != "") && (wineValues.get(TblWineFields.BOTTLE_SIZE) != null) && (wineValues.get(TblWineFields.VINTAGE) != null) ) ) {
+
+						// otherwise it doesn't make any sense (searching for null values)
+						System.out.println("	Looking if potential new wine exists in `tblWines` based on (`gtin`=\"" + wineValues.get(TblWineFields.GTIN) + "\") or (`name`=\"" + wine.getName() + "\" and `bottleSize`=\"" + wineValues.get(TblWineFields.BOTTLE_SIZE) + "\" and `vintage`=\"" + wineValues.get(TblWineFields.VINTAGE) + "\") ");
+				    	try {
+				    		existingWine = this.wineService.getInstance(wine.getName(),
+				    													wineValues.get(TblWineFields.GTIN),
+																		wineValues.get(TblWineFields.BOTTLE_SIZE),
+																		wineValues.get(TblWineFields.VINTAGE));
+						} catch (JsonParseException e4) {
+							System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+							e4.printStackTrace();
+							existingWine = null;
+						} catch (JsonMappingException e4) {
+							System.out.println("	Atention! while trying to find the possibly existing wine, the JSON response from the CRUD doesn't seem to have a valid format");
+							e4.printStackTrace();
+							existingWine = null;
+						} catch (IOException e4) {
+							System.out.println("	Atention! while trying to find the possibly existing wine, the CRUD couldn't be reached or a low level I/O exception arised mapping the response, check the server status");
+							e4.printStackTrace();
+							existingWine = null;
+						}
+				    	
+					} else {
+						existingWine = null;
 					}
-			    	
-			    	// aripe 2018-04-13, I'm changing below line because I've found cases where even if existingWine != null, wineId is null
-			    	//if (existingWine == null) {
-			    	if ( (existingWine == null) || (existingWine.getId() == null) || (existingWine.getId() == 0) ) {	
+						
+					if ( (existingWine != null) && (existingWine.getId() != null) && (existingWine.getId() > 0) ) {
+			    		// existing wine found!
+			    		// using existing wine Id for inserting `tblPartnersProducts`
+			    		
+			    		System.out.println("	An existing wine (`tblWines`.`id`=" + wine.getId() + ") has been found in `tblWines` based on (`gtin`=" + wineValues.get(TblWineFields.GTIN) + ") or (`name`=" + wine.getName() + " and `bottleSize`=" + wineValues.get(TblWineFields.BOTTLE_SIZE) + " and `vintage`=" + wineValues.get(TblWineFields.VINTAGE) + ") ");
+			    		
+	    				partnerProduct = new tblPartnersProducts();
+	    				partnerProduct.setPartnerId(product.getTblpf().getPartnerId());
+	    				partnerProduct.setTblWines(wine);
+	    				partnerProduct.setShopId(partnersMerchant.getShop());
+	    				partnerProduct.setPartnerProductId(product.getPartnerProductId());
+	    				partnerProduct.setPartnerProductPrice(product.getPrice());
+	    				partnerProduct.setPartnerDestinationUrl(product.getProductURL());
+	    				partnerProduct.setPartnerMerchantId(product.getPartnerMerchantId());
+	    				partnerProduct.setPartnerMerchantProductId(product.getMerchantProductId());
+	    				partnerProduct.setPartnerMerchantStock(null);
+	    				partnerProduct.setPartnerMerchantDeliveringCost(product.getDeliveryCost());
+	    				
+	    				// flagging partnerProduct related to new wine as deleted = yes, so it won't be displayed until manually reviewed
+	    				partnerProduct.setDeleted(true);
+	    				
+	    				Integer newPartnerProductId = this.partnersProductsService.insertProduct(partnerProduct);
+	    				if ( (newPartnerProductId != null) && (newPartnerProductId > 0) ) {
+	    					// all done!
+	    					System.out.println("	A new record has been added to `tblPartnersProducts` [`id`=" + newPartnerProductId + "]");
+	    					return newPartnerProductId;
+	    				} else {
+	    					System.out.println("	Atention! New wine: [" + wine + "] has been added to `tblWines` but was not possible to add the registre into `tblPartnersProducts`, partnerProduct=\"" + partnerProduct + "\"");
+		    				return null;
+	    				}
+	    				
+			    	} else {	
 			    		System.out.println("	No existing wine was found in `tblWines`, considering it as a NEW wine");
 			    		// no existing wine was found, we have to get it inserted as a new wine
 			    		if (wine.getId() == null) {
@@ -575,38 +614,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 							return null;
 			    		}
 			    		
-			    	} else {
-			    		// existing wine found!
-			    		// using existing wine Id for inserting `tblPartnersProducts`
-			    		
-			    		System.out.println("	An existing wine (`tblWines`.`id`=" + wine.getId() + ") has been found in `tblWines` based on (`gtin`=" + wineValues.get(TblWineFields.GTIN) + ") or (`name`=" + wine.getName() + " and `bottleSize`=" + wineValues.get(TblWineFields.BOTTLE_SIZE) + " and `vintage`=" + wineValues.get(TblWineFields.VINTAGE) + ") ");
-			    		
-	    				partnerProduct = new tblPartnersProducts();
-	    				partnerProduct.setPartnerId(product.getTblpf().getPartnerId());
-	    				partnerProduct.setTblWines(wine);
-	    				partnerProduct.setShopId(partnersMerchant.getShop());
-	    				partnerProduct.setPartnerProductId(product.getPartnerProductId());
-	    				partnerProduct.setPartnerProductPrice(product.getPrice());
-	    				partnerProduct.setPartnerDestinationUrl(product.getProductURL());
-	    				partnerProduct.setPartnerMerchantId(product.getPartnerMerchantId());
-	    				partnerProduct.setPartnerMerchantProductId(product.getMerchantProductId());
-	    				partnerProduct.setPartnerMerchantStock(null);
-	    				partnerProduct.setPartnerMerchantDeliveringCost(product.getDeliveryCost());
-	    				
-	    				// flagging partnerProduct related to new wine as deleted = yes, so it won't be displayed until manually reviewed
-	    				partnerProduct.setDeleted(true);
-	    				
-	    				Integer newPartnerProductId = this.partnersProductsService.insertProduct(partnerProduct);
-	    				if ( (newPartnerProductId != null) && (newPartnerProductId > 0) ) {
-	    					// all done!
-	    					System.out.println("	A new record has been added to `tblPartnersProducts` [`id`=" + newPartnerProductId + "]");
-	    					return newPartnerProductId;
-	    				} else {
-	    					System.out.println("	Atention! New wine: [" + wine + "] has been added to `tblWines` but was not possible to add the registre into `tblPartnersProducts`, partnerProduct=\"" + partnerProduct + "\"");
-		    				return null;
-	    				}
-	    				
-			    	}
+			    	} 
 					
 				} // End new product
 
