@@ -342,8 +342,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				
 				if ( (partnerProduct != null) && (partnerProduct.getId() != null) && (partnerProduct.getId() > 0) ) {
 					
-					System.out.println("	partnerProduct = " + partnerProduct);
-					
 					// we already got this product
 			    	// checking if current product should be update or not based on `tblPartnersProducts`.`lastUpdated`
 			    	
@@ -467,8 +465,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 						return null;
 					}
 			    	
-			    	if (existingWine == null) {
-			    		
+			    	// aripe 2018-04-13, I'm changing below line because I've found cases where even if existingWine != null, wineId is null
+			    	//if (existingWine == null) {
+			    	if ( (existingWine == null) || (existingWine.getId() == null) || (existingWine.getId() == 0) ) {	
 			    		System.out.println("	No existing wine was found in `tblWines`, considering it as a NEW wine");
 			    		// no existing wine was found, we have to get it inserted as a new wine
 			    		if (wine.getId() == null) {
@@ -535,9 +534,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			    			}
 			    			
 			    			// updating wine after setting imageURL + grape varieties + wine types
-			    			System.out.println("	updating wine with imageURL, grape varieties and wine types");
 			    			if (this.wineService.updateWine(wine)) {
 			    				// new wine updated
+				    			System.out.println("	Just created wine has been updated with imageURL, grape varieties and wine types");
 			    				
 			    				// taking care of `tblPartnersProducts`
 			    				partnerProduct = new tblPartnersProducts();
