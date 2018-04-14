@@ -343,6 +343,11 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				if ( (partnerProduct != null) && (partnerProduct.getId() != null) && (partnerProduct.getId() > 0) ) {
 					
 					// we already got this product
+
+    				// updating `tblWines`.`imageURL if null
+					UpdateWineImageIfNull(partnerProduct.getTblWines(), product.getImageURL());
+
+					
 			    	// checking if current product should be update or not based on `tblPartnersProducts`.`lastUpdated`
 			    	
 					System.out.println("	Existing product found in `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `wineId`=" + partnerProduct.getTblWines().getId() + ", `shopId`=" + partnerProduct.getShopId().getId());
@@ -383,7 +388,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			    		System.out.println("	Product price not updated because existing product `LastUpdated`=" + partnerProduct.getLastUpdated().toString() + " is newer than PF `LastStandardisation`=" + product.getTblpf().getLastStandardisation().toString()); 
 			    		return null;
 			    	}
-			    	
+					
 				} else {
 					
 					// NEW PRODUCT
@@ -448,9 +453,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 					tblWines existingWine;
 					
 					if ( (wineValues.get(TblWineFields.GTIN) != null) || 
-						 ( (wine.getName() != null) && (wine.getName() != "") && (wineValues.get(TblWineFields.BOTTLE_SIZE) != null) && (wineValues.get(TblWineFields.VINTAGE) != null) ) ) {
+						 ( (wine.getName() != null) && (wine.getName() != "") ) ) {
 
-						// otherwise it doesn't make any sense (searching for null values)
+						// otherwise it doesn't make any sense (`name` can't be null or empty)
 						System.out.println("	Looking if potential new wine exists in `tblWines` based on (`gtin`=\"" + wineValues.get(TblWineFields.GTIN) + "\") or (`name`=\"" + wine.getName() + "\" and `bottleSize`=\"" + wineValues.get(TblWineFields.BOTTLE_SIZE) + "\" and `vintage`=\"" + wineValues.get(TblWineFields.VINTAGE) + "\") ");
 				    	try {
 				    		existingWine = this.wineService.getInstance(wine.getName(),
@@ -477,7 +482,12 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 						
 					if ( (existingWine != null) && (existingWine.getId() != null) && (existingWine.getId() > 0) ) {
 			    		// existing wine found!
-			    		// using existing wine Id for inserting `tblPartnersProducts`
+			    		
+						// using existing wine for inserting into `tblPartnersProducts`
+			    		wine = existingWine;
+			    		
+			    		// updating `tblWines`.`imageURL if null
+						UpdateWineImageIfNull(wine, product.getImageURL());
 			    		
 			    		System.out.println("	An existing wine (`tblWines`.`id`=" + wine.getId() + ") has been found in `tblWines` based on (`gtin`=" + wineValues.get(TblWineFields.GTIN) + ") or (`name`=" + wine.getName() + " and `bottleSize`=" + wineValues.get(TblWineFields.BOTTLE_SIZE) + " and `vintage`=" + wineValues.get(TblWineFields.VINTAGE) + ") ");
 			    		
@@ -538,13 +548,8 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 			    			// new wine has been added
 			    			System.out.println("	New wine added into `tblWines`| `id`=" + wine.getId());
 			    			
-			    			// setting wine image
-			    			final String finalImageName = this.wineService.getImageName(product.getImageURL(), wine.getId());
-			    			wineService.getImage(finalImageName, product.getImageURL());
-			    			wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
-			    			if ((wine.getImageURL() == null) || (wine.getImageURL() == "")) {
-			    				System.out.println("	Atention! `tblWines`.`imageURL` not set up");
-			    			}
+			    			// updating `tblWines`.`imageURL if null
+							UpdateWineImageIfNull(wine, product.getImageURL());
 			    			
 			    			// setting grape varieties
 			    			if(!StringUtils.isBlank(wineValues.get(TblWineFields.WINE_GRAPEVARIETY)))
@@ -631,7 +636,26 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		
     }
 
-    /**
+    private void UpdateWineImageIfNull(tblWines wine, String pfImageURL) {
+    	// updating `tblWines`.`imageURL if null
+		if ( (wine != null) && (wine.getId() != null) && (pfImageURL != null) && ( (wine.getImageURL() == null) || (wine.getImageURL() == "") ) ){
+			String finalImageName;
+			try {
+				finalImageName = this.wineService.getImageName(pfImageURL, wine.getId());
+				wineService.getImage(finalImageName, pfImageURL);
+				wine.setImageURL(properties.getProperty("images.host.url")+"/"+finalImageName);
+
+				if (!this.wineService.updateWine(wine)) {
+					System.out.println("	Atention! Image not updated for wine [" + wine + "]");
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+		}
+	}
+
+	/**
      * Here we get the parsing instructions for each value and the html
      * 
      * @param merchantName
@@ -1019,7 +1043,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 
 			if(wine.getCountry().getId()==null)
 			{
-				wine.getCountry().setDeleted(false);
+				wine.getCountry().setDeleted(true);
 				wine.getCountry().setId(Integer.parseInt(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "countries?action=addCountry", this.mapper.writeValueAsString(wine.getCountry()), null)));
 			}
 
