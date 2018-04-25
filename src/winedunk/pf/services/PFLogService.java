@@ -207,10 +207,29 @@ public class PFLogService {
 				String encodedPartnerProductId = partnerProductId.replace(" ", "%20");
 				String encodedEntityName = entityName.replace(" ", "%20");
 				String encodedDescription = description.replace(" ", "%20");
-				RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductfeedLog?action=productProcessing&&logtypeName="+encodedLogtypeName+"&partnerProductId="+encodedPartnerProductId+"&entityName="+encodedEntityName+"&entityId="+entityId+"&description="+encodedDescription, mapper.writeValueAsString(partner), null);
+				RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductfeedLog?action=productProcessing&logtypeName="+encodedLogtypeName+"&partnerProductId="+encodedPartnerProductId+"&entityName="+encodedEntityName+"&entityId="+entityId+"&description="+encodedDescription, mapper.writeValueAsString(partner), null);
 				
 			} catch (Exception e) {
 				System.out.println("Exception at winedunk.pf.services.ProductProcessing()");
+				e.printStackTrace();
+			}
+		}
+		
+	}
+
+	public void StoredprocedureCalled(tblPartners partner, String spName) {
+		
+		if ( (partner != null) && (partner.getId() > 0) && (spName != null) && (spName != "") ) {
+
+			Init();
+
+			try {
+				
+				spName = spName.replace(" ", "%20");
+				RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductfeedLog?action=storedprocedureCalled&spName=" + spName, mapper.writeValueAsString(partner), null);
+				
+			} catch (Exception e) {
+				System.out.println("Exception at winedunk.pf.services.StoredprocedureCalled()");
 				e.printStackTrace();
 			}
 		}
