@@ -4,12 +4,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -31,8 +29,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
-import winedunk.pf.models.tblPartnersProducts;
+import winedunk.pf.models.tblPartners;
 import winedunk.pf.runnables.ProductsProcessRunnable;
+import winedunk.pf.services.PFLogService;
 import winedunk.pf.services.PartnersProductsService;
 import winedunk.pf.services.RequestsCreator;
 import winedunk.pf.services.WineService;
@@ -45,9 +44,6 @@ public class ProductsProcessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private final Properties properties = new Properties();
 	private final Date executionDate = new Date();
-	private PartnersProductsService partnersProductsService;
-	private WineService wineService;
-
 	public ProductsProcessor() { super(); }
 
 	@Override
@@ -63,9 +59,8 @@ public class ProductsProcessor extends HttpServlet {
 			e1.printStackTrace();
 			return;
 		}
-		this.partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
-		this.wineService = new WineService(properties);
-		//runnable = new ProductsProcessRunnable(properties, executionDate);
+		new PartnersProductsService(properties.getProperty("crud.url"));
+		new WineService(properties);
 	}
 
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -114,17 +109,26 @@ public class ProductsProcessor extends HttpServlet {
 					e1.printStackTrace();
 					return;
 				}
-
+				
+				
 				//Executor to process each product
 				//Executors.newSingleThreadExecutor();
 				final ExecutorService executor = Executors.newSingleThreadExecutor();//Runtime.getRuntime().availableProcessors()-1);
 				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>(products.size());
 				Integer j = 1;
 				final List<Tblpf> pfs = new ArrayList<Tblpf>(products.size());
+				
+				// aripe, logs management
+				PFLogService pfLogService = new PFLogService();
+				tblPartners partners = new tblPartners();
+				partners = products.get(0).getTblpf().getPartnerId();
+				pfLogService.ProductsProcessorBegin(partners);
+				
 				//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
 
 				for(Tblpfproduct product : products)
 				{
+					
 					pfs.add(product.getTblpf());
 					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
 					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING))
@@ -151,15 +155,19 @@ public class ProductsProcessor extends HttpServlet {
 
 					futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
 				}
+				
 				//close executor after everything has finished
+
+				executor.shutdown();
 				try {
 					executor.awaitTermination(1l, TimeUnit.DAYS);
 				} catch (InterruptedException e) {
 					System.out.println("An exception occured while internally waiting for all products to be processed");
 					e.printStackTrace();
 				}
-				executor.shutdown();
-
+				
+				/*
+				
 				//Get the list of IDs contained in the futures
 				final List<Integer> processedProducts = new ArrayList<Integer>(futures.size());
 				for(Future<Integer> future : futures)
@@ -174,6 +182,7 @@ public class ProductsProcessor extends HttpServlet {
 						return;
 					}
 				}
+				
 				//Get a list with all the products in the database and set as deleted those that are not present in the list of processed IDs
 				try {
 					List<tblPartnersProducts> partnerProducts = partnersProductsService.getAll();
@@ -208,7 +217,7 @@ public class ProductsProcessor extends HttpServlet {
 					e1.printStackTrace();
 					return;
 				}
-
+				
 				Timestamp time = new Timestamp(new Date().getTime());
 				//Update each product feed with last importation status and time
 				for(Tblpf pf : pfs)
@@ -230,11 +239,24 @@ public class ProductsProcessor extends HttpServlet {
 					}
 				}
 
+				// aripe
+				
 				//final call to the crud to run the stored procedure that will update the minimum prices
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateMinPriceOntblWines() called");
+					
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateMinPriceOntblWines()");
 					e.printStackTrace();
 				}
 				
@@ -242,8 +264,18 @@ public class ProductsProcessor extends HttpServlet {
 				// calling the crud to execute stored procedure spUpdateCountriesWithWines
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateCountriesWithWines", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateCountriesWithWines() called");
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateCountriesWithWines()\"");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateCountriesWithWines()");
 					e.printStackTrace();
 				}
 				
@@ -251,8 +283,18 @@ public class ProductsProcessor extends HttpServlet {
 				// calling the crud to execute stored procedure spUpdateRecommendedWines
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateRecommendedWines", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateRecommendedWines() called");
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateRecommendedWines()\"");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateRecommendedWines()");
 					e.printStackTrace();
 				}
 				
@@ -260,8 +302,18 @@ public class ProductsProcessor extends HttpServlet {
 				// calling the crud to execute stored procedure spUpdateBestOffersbyCountry
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyCountry", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateBestOffersbyCountry() called");
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyCountry()\"");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateBestOffersbyCountry()");
 					e.printStackTrace();
 				}
 				
@@ -269,8 +321,18 @@ public class ProductsProcessor extends HttpServlet {
 				// calling the crud to execute stored procedure spUpdateBestOffersbyMerchants
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyMerchants", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateBestOffersbyMerchants() called");
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyMerchants()\"");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateBestOffersbyMerchants()");
 					e.printStackTrace();
 				}
 				
@@ -278,11 +340,26 @@ public class ProductsProcessor extends HttpServlet {
 				// calling the crud to execute stored procedure spUpdateBestOffersbyWineType
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyWineType", null);
-				} catch (IOException e) {
+
+					// Initialising pfLogType as Information
+					pfLogType = pfLogTypessService.getLogTypeInformation();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "spUpdateBestOffersbyWineType() called");
+				} catch (Exception e) {
 					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyWineType()\"");
+
+					// Initialising pfLogType as Error
+					pfLogType = pfLogTypessService.getLogTypeError();
+					// inserting log
+					pfLogService.addLogLine(pfLogProcesses, pfLogType, partners, "", "There was an error while calling spUpdateBestOffersbyWineType()");
 					e.printStackTrace();
 				}
 				
+				*/
+				
+				// Inserting closing event Log
+				pfLogService.ProductsProcessorEnd(partners);
+								
 			}
 
 			/**

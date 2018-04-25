@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.runnables.ProductFeedsRunnable;
+import winedunk.pf.services.PFLogService;
 import winedunk.pf.services.ProductFeedsProcessHelper;
 import winedunk.pf.services.RequestsCreator;
 
@@ -99,10 +100,16 @@ public class ProductFeedsPocessor extends HttpServlet {
 			return;
 		}
 
+		// aripe, logs management
+		PFLogService pfLogService = new PFLogService();
+		
 		final ExecutorService executor = Executors.newSingleThreadExecutor();
 		final ExecutorService pfExecutor = Executors.newSingleThreadExecutor();
 		for(Tblpf pf : allProductFeedsList)
 		{
+			// aripe, inserting log
+			pfLogService.ProductFeedsPocessorBegin(pf.getPartnerId(), pf.getDescription().concat(" URL=").concat(pf.getDownloadURL()));
+			
 			executor.submit(new Runnable() {
 				@Override
 				public void run() {
@@ -126,7 +133,6 @@ public class ProductFeedsPocessor extends HttpServlet {
 							try {
 								pfExecutor.submit(new ProductFeedsRunnable(pf, helper, properties));
 							} catch (Exception e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						else
@@ -135,7 +141,6 @@ public class ProductFeedsPocessor extends HttpServlet {
 								try {
 									pfExecutor.submit(new ProductFeedsRunnable(pf, helper, properties));
 								} catch (Exception e) {
-									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
 						}
@@ -143,6 +148,11 @@ public class ProductFeedsPocessor extends HttpServlet {
 							
 				}
 			});
+
+			// aripe, Inserting Log
+			pfLogService.ProductFeedsPocessorEnd(pf.getPartnerId(), pf.getDescription().concat(" URL=").concat(pf.getDownloadURL()));
+			
 		}
+
 	}
 }
