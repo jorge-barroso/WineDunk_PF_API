@@ -59,7 +59,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 
 	private final ObjectMapper mapper = new ObjectMapper();
 	private final Properties properties;
-	private final Date executionDate;
 	private Tblpfproduct product;
 	private WineService wineService;
 	private PartnersProductsService partnersProductsService;
@@ -84,7 +83,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	public ProductsProcessRunnable(Properties properties, Date executionDate, Tblpfproduct product, String logTypeErrorName, String logTypeWarningName, String logTypeInformationName)
 	{
 		this.properties = properties;
-		this.executionDate = executionDate;
 		this.product = product;
 		this.mapper.setSerializationInclusion(Include.NON_NULL);
 		
@@ -1010,38 +1008,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     		e.printStackTrace();
     		return null;
     	}
-    }
-
-    /**
-     * 
-     * @param partnersProducts
-     * @param productStandard
-     * @return
-     * @throws JsonParseException
-     * @throws JsonMappingException
-     * @throws IOException
-     */
-    private tblPartnersProducts setPartnerProductsValues(tblPartnersProducts partnersProducts, Tblpfproduct productStandard, tblWines wine, tblPartners partner, String partnerProduct)
-    {
-    	tblPartnersMerchants partnersMerchants = this.getMerchantBypartnerMerchantName(productStandard.getMerchantName(), partner, partnerProduct);
-    	partnersProducts.setDeleted(false)
-    					.setDeletedDate(null)
-    					.setLastUpdated(this.executionDate)
-    					.setPartnerDestinationUrl(productStandard.getClicktag())
-    					.setPartnerId(productStandard.getTblpf().getPartnerId())
-    					.setPartnerMerchantDeliveringCost(productStandard.getDeliveryCost())
-    					.setPartnerMerchantId(productStandard.getPartnerMerchantId())
-    					.setPartnerMerchantProductId(productStandard.getMerchantProductId())
-    					.setPartnerMerchantStock(null)
-    					.setPartnerProductId(productStandard.getPartnerProductId())
-    					.setPartnerProductPrice(productStandard.getPrice())
-    					
-    					// aripe 2018-04-05
-    					// .setShopId(this.getMerchant(productStandard.getMerchantName()))
-    					.setShopId(partnersMerchants.getShop())
-    					
-    					.setTblWines(wine);
-    	return partnersProducts;
     }
 
     /**

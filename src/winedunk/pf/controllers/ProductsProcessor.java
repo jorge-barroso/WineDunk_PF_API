@@ -30,7 +30,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
-import winedunk.pf.models.Tblpfstatus;
 import winedunk.pf.models.tblPartners;
 import winedunk.pf.runnables.ProductsProcessRunnable;
 import winedunk.pf.services.PFLogService;
@@ -51,7 +50,9 @@ public class ProductsProcessor extends HttpServlet {
 	// aripe, logs management
 	PFLogService pfLogService = new PFLogService();
 	tblPartners partners = new tblPartners();
-	private PFLogTypesService pfLogTypesService = new PFLogTypesService();
+	private PFLogTypesService pfLogTypesService = new PFLogTypesService();	
+	String logTypeErrorName = pfLogTypesService.getLogTypeError().getName();
+	String logTypeWarningName = pfLogTypesService.getLogTypeWarning().getName();
 	String logTypeInformationName = pfLogTypesService.getLogTypeInformation().getName();
 	
 	public ProductsProcessor() { super(); }
@@ -131,6 +132,7 @@ public class ProductsProcessor extends HttpServlet {
 				{
 					partners = tblpf.getPartnerId();
 					pfLogService.ProductsProcessorBegin(partners);
+					
 					productFeedsStatus.put(tblpf, true);
 					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
 					if(tblpf.getLatestStatus().getName().equals(PfStatus.PROCESSING))
@@ -140,7 +142,7 @@ public class ProductsProcessor extends HttpServlet {
 					{
 						//close executor after everything has finished
 						try{
-							executor.submit(new ProductsProcessRunnable(properties, executionDate, product));
+							executor.submit(new ProductsProcessRunnable(properties, executionDate, product, logTypeErrorName, logTypeWarningName, logTypeInformationName));
 						} catch (Exception e) {
 							productFeedsStatus.put(tblpf, false);
 						}
