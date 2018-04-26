@@ -5,9 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,7 +30,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
+import winedunk.pf.models.Tblpfstatus;
 import winedunk.pf.models.tblPartners;
+import winedunk.pf.runnables.ProductsProcessRunnable;
 import winedunk.pf.services.PFLogService;
 import winedunk.pf.services.PFLogTypesService;
 import winedunk.pf.services.PartnersProductsService;
@@ -96,9 +99,9 @@ public class ProductsProcessor extends HttpServlet {
 				}
 
 				//List of products
-				List<Tblpfproduct> products;
+				List<Tblpf> tblpfs;
 				try {
-					products = getProductsList(requestBody.has("id") ? requestBody.get("id").asInt() : null);
+					tblpfs = getProductFeeds(requestBody.has("id") ? requestBody.get("id").asInt() : null);
 				} catch (JsonParseException e1) {
 					System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD doesn't seem to have a valid JSON format");
 					e1.printStackTrace();
@@ -121,42 +124,29 @@ public class ProductsProcessor extends HttpServlet {
 				//Executor to process each product
 				//Executors.newSingleThreadExecutor();
 				final ExecutorService executor = Executors.newSingleThreadExecutor();//Runtime.getRuntime().availableProcessors()-1);
-				final List<Tblpf> pfs = new ArrayList<Tblpf>(products.size());
-				
-				partners = products.get(0).getTblpf().getPartnerId();
-				pfLogService.ProductsProcessorBegin(partners);
 				
 				//loop through each product returned by getProductsList (Might be related to a single pf if id is given or all of them if id is null)
-
-				for(Tblpfproduct product : products)
+				Map<Tblpf, Boolean> productFeedsStatus = new HashMap<Tblpf, Boolean>(tblpfs.size());
+				for(Tblpf tblpf : tblpfs)
 				{
-					
-					pfs.add(product.getTblpf());
+					partners = tblpf.getPartnerId();
+					pfLogService.ProductsProcessorBegin(partners);
+					productFeedsStatus.put(tblpf, true);
 					//If we are currently processing that product feed we will wait until it has finished, unless it's a manual execution for a specific one, then we just skip it
-					if(product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING))
-					{
+					if(tblpf.getLatestStatus().getName().equals(PfStatus.PROCESSING))
 						continue;
-						/*if(!requestBody.has("id"))
-						{
-							continue;
+					
+					for(Tblpfproduct product : tblpf.getTblpfproducts())
+					{
+						//close executor after everything has finished
+						try{
+							executor.submit(new ProductsProcessRunnable(properties, executionDate, product));
+						} catch (Exception e) {
+							productFeedsStatus.put(tblpf, false);
 						}
-						else
-						{
-							do 
-							{
-								try {
-									Thread.sleep(5000);
-								} catch (InterruptedException e) {
-									System.out.println("Thread interrupted while waiting to process product feed");
-									e.printStackTrace();
-									return;
-								}
-							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING));
-						}*/
 					}
 				}
 				
-				//close executor after everything has finished
 				
 				executor.shutdown();
 				
@@ -170,22 +160,27 @@ public class ProductsProcessor extends HttpServlet {
 
 				Timestamp time = new Timestamp(new Date().getTime());
 				//Update each product feed with last importation status and time
-				for(Tblpf pf : pfs)
+				for(Map.Entry<Tblpf, Boolean> tblpfStatus : productFeedsStatus.entrySet())
 				{
-					pf.setLastImportation(time);
-					try {
-						RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf), null);
-					} catch (IOException e) {
-						System.out.println("There was an exception while reaching the crud to set last importation status");
-						e.printStackTrace();
-					}
+					if(tblpfStatus.getValue())
+					{
+						Tblpf tblpf = tblpfStatus.getKey();
 
-					//if we make it here, the process of importing the ProductFeed was successful and thus we can set the status tu OK
-					try {
-						RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+pf.getId(), null);
-					} catch (IOException e) {
-						System.out.println("There was an exception while reaching the crud to set last importation status");
-						e.printStackTrace();
+						tblpf.setLastImportation(time);
+						try {
+							RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(tblpf), null);
+						} catch (IOException e) {
+							System.out.println("There was an exception while reaching the crud to set last importation status");
+							e.printStackTrace();
+						}
+	
+						//if we make it here, the process of importing the ProductFeed was successful and thus we can set the status tu OK
+						try {
+							RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?action=okImportation&id="+tblpf.getId(), null);
+						} catch (IOException e) {
+							System.out.println("There was an exception while reaching the crud to set last importation status");
+							e.printStackTrace();
+						}
 					}
 				}
 				
@@ -273,24 +268,13 @@ public class ProductsProcessor extends HttpServlet {
 		     * @throws JsonMappingException 
 		     * @throws JsonParseException 
 		     */
-		    private List<Tblpfproduct> getProductsList(Integer id) throws JsonParseException, JsonMappingException, IOException
+		    private List<Tblpf> getProductFeeds(Integer id) throws JsonParseException, JsonMappingException, IOException
 		    {
-		    	String action;
-		    	String body;
-		    	if(id==null)
-		    	{
-		    		action = "action=getAll";
-		    		body = "{ }";
-		    	}
-		    	else
-		    	{
-		    		action = "action=getByPfId";
-		    		body = "{ \"pfId\" : "+id+" }";
-		    	}
+		    	final String parameters = id==null ? "action=getAll" : "action=getById?id="+id;
 
-				List<Tblpfproduct> products = this.mapper.readValue(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body, null), new TypeReference<List<Tblpfproduct>>(){});
+				List<Tblpf> productFeeds = this.mapper.readValue(RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "ProductFeeds?"+parameters, null), new TypeReference<List<Tblpf>>(){});
 				
-				return products;
+				return productFeeds;
 		    }
 		}).start();
 	}

@@ -23,12 +23,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import winedunk.pf.models.TblPFLogProcesses;
-import winedunk.pf.models.TblPFLogTypes;
 import winedunk.pf.helpers.Colours;
 import winedunk.pf.helpers.NoDataFieldsValues;
 import winedunk.pf.helpers.TblWineFields;
 import winedunk.pf.models.DataSource;
+import winedunk.pf.models.TblPFLogProcesses;
+import winedunk.pf.models.TblPFLogTypes;
 import winedunk.pf.models.TblWinesGrapeVariety;
 import winedunk.pf.models.TblWinesWineType;
 import winedunk.pf.models.Tblpfmerchanthtmlparsing;
@@ -49,7 +49,6 @@ import winedunk.pf.services.DataExtractor;
 import winedunk.pf.services.HtmlDataExtractor;
 import winedunk.pf.services.JsonDataExtractor;
 import winedunk.pf.services.PFLogService;
-import winedunk.pf.services.PFLogTypesService;
 import winedunk.pf.services.PartnersProductsService;
 import winedunk.pf.services.ProductService;
 import winedunk.pf.services.RequestsCreator;
@@ -82,7 +81,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	 * @param properties
 	 * @param executionDate
 	 */
-	public ProductsProcessRunnable(Integer j, Properties properties, Date executionDate, Tblpfproduct product, String logTypeErrorName, String logTypeWarningName, String logTypeInformationName)
+	public ProductsProcessRunnable(Properties properties, Date executionDate, Tblpfproduct product, String logTypeErrorName, String logTypeWarningName, String logTypeInformationName)
 	{
 		this.properties = properties;
 		this.executionDate = executionDate;
