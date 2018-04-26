@@ -220,14 +220,14 @@ public class ProductFeedsRunnable implements Runnable {
 									try {
 										final Boolean updated = Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product), null));
 										if(!updated)
-											System.out.println("Something went wrong updating the wine on the database");
+											System.out.println("Something went wrong updating the product on `tblPFProducts`");
 									} catch (JsonProcessingException e) {
-										System.out.println("Whiles trying to update a product on the database, there was a problem while serialising it");
+										System.out.println("Whiles trying to update a product on `tblPFProducts`, there was a problem while serialising it");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
 									} catch (IOException e) {
-										System.out.println("Whiles trying to update a product on the database, the CRUD wasn't reachable");
+										System.out.println("Whiles trying to update a product on `tblPFProducts`, the CRUD wasn't reachable");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
@@ -255,7 +255,7 @@ public class ProductFeedsRunnable implements Runnable {
 						//if the tread is interrupted we just return without updating the last importation date, as the thread failed
 						return;
 					}
-
+					
 					//Get all the listed products from this parter and remove those which id is not contaied in the list with the current products' ids
 					final String productsListJson = RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=getByPfId", "{\"id\" : "+this.pf.getId()+"}", null);
 					final List<Tblpfproduct> productsList = this.mapper.readValue(productsListJson, new TypeReference<List<Tblpfproduct>>(){});
@@ -264,7 +264,7 @@ public class ProductFeedsRunnable implements Runnable {
 						if(!productsFound.contains(pfProduct.getId()))
 						{
 							if(!Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pfProduct.getId()+"}", null)))
-								System.out.println("Couldn't delete wine "+pfProduct.getId());
+								System.out.println("Couldn't delete product "+pfProduct.getId());
 							else
 								System.out.println("Product "+pfProduct.getId()+" deleted");
 						}
@@ -274,6 +274,10 @@ public class ProductFeedsRunnable implements Runnable {
 					this.pf.setLastStandardisation(new Timestamp(new Date().getTime()));
 					RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "ProductFeeds?action=update", this.mapper.writeValueAsString(pf), null);
 					this.helper.ok(this.pf.getId());
+
+					// aripe, Inserting Log
+					pfLogService.ProductFeedsPocessorEnd(pf.getPartnerId(), pf.getDescription().concat(" URL=").concat(pf.getDownloadURL()));
+
 				}
 			} finally {
 				file.delete();

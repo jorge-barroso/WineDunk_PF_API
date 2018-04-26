@@ -148,9 +148,6 @@ public class ProductFeedsPocessor extends HttpServlet {
 							
 				}
 			});
-
-			// aripe, Inserting Log
-			pfLogService.ProductFeedsPocessorEnd(pf.getPartnerId(), pf.getDescription().concat(" URL=").concat(pf.getDownloadURL()));
 			
 		}
 

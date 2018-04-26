@@ -130,7 +130,7 @@ public class PartnersProductsService {
     public Boolean delete(Integer id)
     {
     	try {
-			return Boolean.parseBoolean(RequestsCreator.createPostRequest(apiUrl, servletUrl+"action=delete", "{\"id\" : "+id+"}", null));
+			return Boolean.parseBoolean(RequestsCreator.createPostRequest(apiUrl, servletUrl+"?action=deletePartnersProducts", "{\"id\" : "+id+"}", null));
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
@@ -31,8 +30,6 @@ import winedunk.pf.helpers.PfStatus;
 import winedunk.pf.models.Tblpf;
 import winedunk.pf.models.Tblpfproduct;
 import winedunk.pf.models.tblPartners;
-import winedunk.pf.models.tblPartnersProducts;
-import winedunk.pf.runnables.ProductsProcessRunnable;
 import winedunk.pf.services.PFLogService;
 import winedunk.pf.services.PFLogTypesService;
 import winedunk.pf.services.PartnersProductsService;
@@ -47,9 +44,7 @@ public class ProductsProcessor extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private final Properties properties = new Properties();
 	private final Date executionDate = new Date();
-	private PartnersProductsService partnersProductsService;
-	private WineService wineService;
-
+	
 	// aripe, logs management
 	PFLogService pfLogService = new PFLogService();
 	tblPartners partners = new tblPartners();
@@ -126,8 +121,6 @@ public class ProductsProcessor extends HttpServlet {
 				//Executor to process each product
 				//Executors.newSingleThreadExecutor();
 				final ExecutorService executor = Executors.newSingleThreadExecutor();//Runtime.getRuntime().availableProcessors()-1);
-				final List<Future<Integer>> futures = new ArrayList<Future<Integer>>(products.size());
-				Integer j = 1;
 				final List<Tblpf> pfs = new ArrayList<Tblpf>(products.size());
 				
 				partners = products.get(0).getTblpf().getPartnerId();
@@ -161,13 +154,12 @@ public class ProductsProcessor extends HttpServlet {
 							} while (product.getTblpf().getLatestStatus().getName().equals(PfStatus.PROCESSING));
 						}*/
 					}
-
-					futures.add(executor.submit(new ProductsProcessRunnable(j++, properties, executionDate, product)));
 				}
 				
 				//close executor after everything has finished
 				
 				executor.shutdown();
+				
 				try {
 					executor.awaitTermination(1l, TimeUnit.DAYS);
 				} catch (InterruptedException e) {
@@ -175,59 +167,7 @@ public class ProductsProcessor extends HttpServlet {
 					e.printStackTrace();
 				}
 				
-				//Get the list of IDs contained in the futures
-				final List<Integer> processedProducts = new ArrayList<Integer>(futures.size());
-				for(Future<Integer> future : futures)
-				{
-					try {
-						processedProducts.add(future.get());
-					} catch (InterruptedException e) {
-						e.printStackTrace();
-						return;
-					} catch (Exception e) {
-						e.printStackTrace();
-						return;
-					}
-				}
 
-				// aripe initialising both wineService and partnersProductsService because it was missing
-				wineService = new WineService(properties);
-				partnersProductsService = new PartnersProductsService(properties.getProperty("crud.url"));
-				
-				
-				//Get a list with all the products in the database and set as deleted those that are not present in the list of processed IDs
-				try {
-
-					List<tblPartnersProducts> partnerProducts = partnersProductsService.getAll();
-					List<Integer> existingWineIds = new ArrayList<Integer>(futures.size());
-					List<Integer> allWineIds = new ArrayList<Integer>(futures.size());
-					for(tblPartnersProducts partnerProduct: partnerProducts)
-					{
-						if(!processedProducts.contains(partnerProduct.getId()))
-						{
-							partnerProduct.setDeleted(true);
-							partnersProductsService.delete(partnerProduct.getId());
-						}
-						else
-						{
-							existingWineIds.add(partnerProduct.getTblWines().getId());
-						}
-						allWineIds.add(partnerProduct.getTblWines().getId());
-					}
-
-					for(Integer wineId : allWineIds)
-					{
-						if(!existingWineIds.contains(wineId))
-							wineService.delete(wineId);
-					}
-				} catch (Exception e1) {
-					e1.printStackTrace();
-					return;
-				} 
-				
-
-				System.out.println("================================ 2 ================================");
-				
 				Timestamp time = new Timestamp(new Date().getTime());
 				//Update each product feed with last importation status and time
 				for(Tblpf pf : pfs)
@@ -248,11 +188,20 @@ public class ProductsProcessor extends HttpServlet {
 						e.printStackTrace();
 					}
 				}
-
-
-				System.out.println("================================ 3 ================================");
 				
-				// aripe
+				
+				/* aripe 2018-04-26
+				 * calling the crud to execute stored procedure spFlaggingProductsAsDeleted() which will handle all needed changes related to `deleted` column
+				 * for both `tblPartnersProducts` and `tblWines`
+				 */
+				try {
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPFlaggingProductsAsDeleted", null);
+					pfLogService.StoredprocedureCalled(partners, "spFlaggingProductsAsDeleted()");
+				} catch (Exception e) {
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spFlaggingProductsAsDeleted()\"");
+					e.printStackTrace();
+				}
+
 				//final call to the crud to run the stored procedure that will update the minimum prices
 				try {
 					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices", null);
@@ -311,9 +260,6 @@ public class ProductsProcessor extends HttpServlet {
 					e.printStackTrace();
 				}
 				
-
-				System.out.println("================================ 4 ================================");
-				
 				// Inserting closing event Log
 				pfLogService.ProductsProcessorEnd(partners);
 								
@@ -343,6 +289,7 @@ public class ProductsProcessor extends HttpServlet {
 		    	}
 
 				List<Tblpfproduct> products = this.mapper.readValue(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?"+action, body, null), new TypeReference<List<Tblpfproduct>>(){});
+				
 				return products;
 		    }
 		}).start();
