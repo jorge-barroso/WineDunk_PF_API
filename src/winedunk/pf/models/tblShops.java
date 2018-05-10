@@ -81,12 +81,6 @@ public class tblShops {
 	public List<tblWines> getWines() { return wines; }
 	public void setWines(List<tblWines> wines) { this.wines = wines; }
 	
-	@OneToMany(mappedBy = "merchantId", targetEntity = tblWinesbyMerchants.class)
-	@JsonBackReference("winesByMerchant_merchantId")
-	private List<tblWinesbyMerchants> winesByMerchant;
-	public List<tblWinesbyMerchants> getWinesByMerchant() { return winesByMerchant; }
-	public void setWinesByMerchant(List<tblWinesbyMerchants> winesByMerchant) { this.winesByMerchant = winesByMerchant; }
-	
 	@OneToMany(mappedBy="tblShops", targetEntity = Tblpfmerchanthtmlparsing.class)
 	private List<Tblpfmerchanthtmlparsing> parsingByMerchant;
 	public List<Tblpfmerchanthtmlparsing> getTblpfmerchanthtmlparsing() { return parsingByMerchant; }
@@ -113,7 +107,6 @@ public class tblShops {
 		this.deleted = null;
 		this.clicks = null;
 		this.wines = null;
-		this.winesByMerchant = null;
 	}
 
 	@Override

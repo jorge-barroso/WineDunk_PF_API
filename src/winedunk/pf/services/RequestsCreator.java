@@ -217,18 +217,22 @@ public class RequestsCreator extends EncodeURL {
 
 	private static HttpURLConnection processRequestResult(HttpURLConnection con, URL url, Map<String, String> headers) throws MalformedURLException, UnsupportedEncodingException, IOException
 	{
-		while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
-		{
-			url = new URL(con.getHeaderField("Location"));
-			con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null, headers) : startHttpConnection(url, false, null, headers);
-		}
+		try {
+			while(con.getResponseCode()==HttpServletResponse.SC_MOVED_PERMANENTLY || con.getResponseCode()==HttpServletResponse.SC_MOVED_TEMPORARILY || con.getResponseCode()==HttpServletResponse.SC_SEE_OTHER)
+			{
+				url = new URL(con.getHeaderField("Location"));
+				con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null, headers) : startHttpConnection(url, false, null, headers);
+			}
 
-		if(con.getResponseCode()/100!=2)
-		{
-			throw new IOException("Error "+con.getResponseCode()+": "+con.getResponseMessage());
+			if ( (con.getResponseCode()/100!=2) && (con.getResponseCode() != 404) ) // we are ignoring this error because it usually happens when product page is not found at merchant site (nothing to do)
+			{
+				throw new IOException("Error "+con.getResponseCode()+": "+con.getResponseMessage());
+			}
+			
+			return con;	
+		} catch (Exception e) {
+			return null;
 		}
-		
-		return con;
 	}
 
 	/**

@@ -187,73 +187,13 @@ public class ProductsProcessor extends HttpServlet {
 				}
 				
 				
-				/* aripe 2018-04-26
-				 * calling the crud to execute stored procedure spFlaggingProductsAsDeleted() which will handle all needed changes related to `deleted` column
-				 * for both `tblPartnersProducts` and `tblWines`
-				 */
+				// aripe 2018-04-28
+				// calling the crud to execute stored procedure spUpdateDataAfterImporting
 				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPFlaggingProductsAsDeleted", null);
-					pfLogService.StoredprocedureCalled(partners, "spFlaggingProductsAsDeleted()");
+					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateDataAfterImporting", null);
+					pfLogService.StoredprocedureCalled(partners, "spUpdateDataAfterImporting()");
 				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spFlaggingProductsAsDeleted()\"");
-					e.printStackTrace();
-				}
-
-				//final call to the crud to run the stored procedure that will update the minimum prices
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/wines?action=setMinimumPrices", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateMinPriceOntblWines()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure to update the minimum wine prices");
-					e.printStackTrace();
-				}
-				
-				// calling the crud to execute stored procedure spUpdateCountriesWithWines
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateCountriesWithWines", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateCountriesWithWines()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateCountriesWithWines()\"");
-					e.printStackTrace();
-				}
-				
-				// aripe 2018-04-07
-				// calling the crud to execute stored procedure spUpdateRecommendedWines
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateRecommendedWines", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateRecommendedWines()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateRecommendedWines()\"");
-					e.printStackTrace();
-				}
-				
-				// aripe 2018-04-07
-				// calling the crud to execute stored procedure spUpdateBestOffersbyCountry
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyCountry", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateBestOffersbyCountry()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyCountry()\"");
-					e.printStackTrace();
-				}
-				
-				// aripe 2018-04-07
-				// calling the crud to execute stored procedure spUpdateBestOffersbyMerchants
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyMerchants", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateBestOffersbyMerchants()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyMerchants()\"");
-					e.printStackTrace();
-				}
-				
-				// aripe 2018-04-07
-				// calling the crud to execute stored procedure spUpdateBestOffersbyWineType
-				try {
-					RequestsCreator.createGetRequest(properties.getProperty("crud.url"), "/storedProcedures?action=callSPUpdateBestOffersbyWineType", null);
-					pfLogService.StoredprocedureCalled(partners, "spUpdateBestOffersbyWineType()");
-				} catch (Exception e) {
-					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateBestOffersbyWineType()\"");
+					System.out.println("There was an exception while reaching the crud to execute the internal stored procedure \"spUpdateDataAfterImporting()\"");
 					e.printStackTrace();
 				}
 				

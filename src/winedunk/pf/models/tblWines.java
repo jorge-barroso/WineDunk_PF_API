@@ -98,6 +98,28 @@ public final class tblWines {
 
 	@Column(name = "minimumPrice")
 	private Float minimumPrice;
+	public Float getMinimumPrice() { return minimumPrice; }
+	public void setMinimumPrice(Float minimumPrice) { this.minimumPrice = minimumPrice; }
+
+	@Column(name = "previousMaxPrice")
+	private Float previousMaxPrice;
+	public Float getPreviousMaxPrice() { return previousMaxPrice; }
+	public void setPreviousMaxPrice(Float previousMaxPrice) { this.previousMaxPrice = previousMaxPrice; }
+
+	@Column(name = "saving")
+	private Float saving;
+	public Float getSaving() { return saving; }
+	public void setSaving(Float saving) { this.saving = saving; }
+
+	@Column(name = "percentageOff")
+	private Integer percentageOff;
+	public Integer getPercentageOff() { return percentageOff; }
+	public void setPercentageOff(Integer percentageOff) { this.percentageOff = percentageOff; }
+
+	@Column(name = "minimumPriceClicktag")
+	private String minimumPriceClicktag;
+	public String getMinimumPriceClicktag() { return minimumPriceClicktag; }
+	public void setMinimumPriceClicktag(String minimumPriceClicktag) { this.minimumPriceClicktag = minimumPriceClicktag; }
 
 	@ManyToOne
 	@JoinColumn(name = "minimumPriceShopId")
@@ -134,10 +156,6 @@ public final class tblWines {
 	@JsonBackReference("RecommendedWines")
 	private List<tblRecommendedWines> recommendedWines;
 
-	@OneToMany(mappedBy = "wineId", targetEntity = tblWinesbyMerchants.class)
-	@JsonBackReference("wine_winesByMerchant")
-	private List<tblWinesbyMerchants> winesByMerchant;
-
 	@OneToMany(mappedBy = "wineId", targetEntity = tblBestOffersbyType.class)
 	@JsonBackReference("wine_bestOffersByType")
 	private List<tblBestOffersbyType> bestOffersByType;
@@ -166,9 +184,12 @@ public final class tblWines {
 		this.winesViewed = null;
 		this.clicks = null;
 		this.minimumPrice = null;
+		this.previousMaxPrice = null;
+		this.saving = null;
+		this.percentageOff = null;
+		this.minimumPriceClicktag = null;
 		this.minimumPriceShopId = null;
 		this.userPriceAlerts = null;
-		this.winesByMerchant = null;
 		this.bestOffersByType = null;
 		this.avgRating = null;
 		
@@ -320,14 +341,6 @@ public final class tblWines {
 		this.gtin = gtin;
 	}
 
-	public Float getMinimumPrice() {
-		return minimumPrice;
-	}
-
-	public void setMinimumPrice(Float minimumPrice) {
-		this.minimumPrice = minimumPrice;
-	}
-
 	public tblShops getMinimumPriceShopId() {
 		return minimumPriceShopId;
 	}
@@ -398,14 +411,6 @@ public final class tblWines {
 
 	public void setRecommendedWines(List<tblRecommendedWines> recommendedWines) {
 		this.recommendedWines = recommendedWines;
-	}
-
-	public List<tblWinesbyMerchants> getWinesByMerchant() {
-		return winesByMerchant;
-	}
-
-	public void setWinesByMerchant(List<tblWinesbyMerchants> winesByMerchant) {
-		this.winesByMerchant = winesByMerchant;
 	}
 
 	public List<tblBestOffersbyType> getBestOffersByType() {
@@ -563,7 +568,13 @@ public final class tblWines {
 				+ ", colour=" + colour + ", winery=" + winery + ", closure=" + closure + ", name=" + name
 				+ ", defaultDescription=" + defaultDescription + ", shortDescription=" + shortDescription
 				+ ", bottleSize=" + bottleSize + ", vintage=" + vintage + ", abv=" + abv + ", imageURL=" + imageURL
-				+ ", gtin=" + gtin + ", minimumPrice=" + minimumPrice + ", minimumPriceShopId=" + minimumPriceShopId
+				+ ", gtin=" + gtin 
+				+ ", minimumPrice=" + minimumPrice 
+				+ ", previousMaxPrice=" + previousMaxPrice 
+				+ ", saving=" + saving 
+				+ ", percentageOff=" + percentageOff 
+				+ ", minimumPriceClicktag=" + minimumPriceClicktag 
+				+ ", minimumPriceShopId=" + minimumPriceShopId
 				+ ", deleted=" + deleted + "]";
 	}
 }
