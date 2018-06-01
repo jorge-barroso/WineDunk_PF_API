@@ -117,7 +117,9 @@ public class PartnersProductsService {
         	String productString = RequestsCreator.createGetRequest(apiUrl, "partnersProductss?"+requestParameters, null);
         	
         	if (!productString.isEmpty()) {
+        		
         		return this.mapper.readValue(productString, tblPartnersProducts.class);
+        		
         	} else {
         		return new tblPartnersProducts();
         	}

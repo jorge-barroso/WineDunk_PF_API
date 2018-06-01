@@ -9,6 +9,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -19,11 +20,17 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
+
 @Entity
 @Table(name = "tblPartnersProducts")
-@NamedQuery(name="tblPartnersProducts.findByPartProdIdAndMercProdId", query="SELECT pp FROM tblPartnersProducts pp "
-																		  + "WHERE pp.partnerProductId = :ppId "
-																		  	+ "AND pp.partnerMerchantProductId = :mpId")
+// aripe 2018-03-31 - "tblPartnersProducts.findByPartnerIdAndPartnerProductId" added
+@NamedQueries({
+	@NamedQuery(name="tblPartnersProducts.findByPartProdIdAndMercProdId", query="SELECT pp FROM tblPartnersProducts pp "
+			  + "WHERE pp.partnerProductId = :ppId "
+			  	+ "AND pp.partnerMerchantProductId = :mpId"),
+	@NamedQuery(name="tblPartnersProducts.findByPartnerIdAndPartnerProductId", query="SELECT pp FROM tblPartnersProducts pp "
+			  + "WHERE pp.partnerId.id = :partnerId "
+			  	+ "AND pp.partnerProductId = :partnerProductId") })
 @JsonIdentityInfo(generator = ObjectIdGenerators.IntSequenceGenerator.class, property = "@id")
 public class tblPartnersProducts {
 
@@ -74,7 +81,8 @@ public class tblPartnersProducts {
 		return this;
 	}
 
-	@Column(name = "partnerProductId")
+	// aripe length attribute added
+	@Column(name= "partnerProductId", length = 45)
 	private String partnerProductId;
 	public String getPartnerProductId() {
 		return partnerProductId;
@@ -94,7 +102,8 @@ public class tblPartnersProducts {
 		return this;
 	}
 
-	@Column(name = "partnerDestinationUrl")
+	// aripe length attribute added
+	@Column(name= "partnerDestinationURL", length = 1000)
 	private String partnerDestinationUrl;
 	public String getPartnerDestinationUrl() {
 		return partnerDestinationUrl;
@@ -104,7 +113,8 @@ public class tblPartnersProducts {
 		return this;
 	}
 
-	@Column(name = "partnerMerchantId")
+	// aripe length attribute added
+	@Column(name= "partnerMerchantId", length = 20)
 	private String partnerMerchantId;
 	public String getPartnerMerchantId() {
 		return partnerMerchantId;
@@ -114,7 +124,8 @@ public class tblPartnersProducts {
 		return this;
 	}
 
-	@Column(name = "partnerMerchantProductId")
+	// aripe length attribute added
+	@Column(name= "partnerMerchantProductId", length = 45)
 	private String partnerMerchantProductId;
 	public String getPartnerMerchantProductId() {
 		return partnerMerchantProductId;
@@ -156,7 +167,8 @@ public class tblPartnersProducts {
 		return this;
 	}
 
-	@Column(name = "lastMD5")
+	// aripe length attribute added
+	@Column(name= "lastMD5", length = 32)
 	private String lastMD5;
 	public String getLastMD5() {
 		return lastMD5;
