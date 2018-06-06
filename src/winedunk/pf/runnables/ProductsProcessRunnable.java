@@ -478,7 +478,7 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     		
 			if(merchant.getId()==null)
 			{
-				System.out.println("Couldn't find merchant, so no parsing data can be provided");
+				System.out.println("Exception: Couldn't find merchant, so no parsing data can be provided");
 				return new ArrayList<Tblpfmerchanthtmlparsing>();
 			}
 
@@ -488,26 +488,26 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 				merchantParsingString = RequestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "TblPfMerchantsHTMLParsing?action=getByMerchant" , "{ \"id\" : "+merchant.getId()+" }", null);
 			} catch (IOException e) {
 				e.printStackTrace();
-				System.out.println("Couldn't reach CRUD destination while attempting to get the list of parsing instructions");
+				System.out.println("Exception: Couldn't reach CRUD destination while attempting to get the list of parsing instructions");
 				return new ArrayList<Tblpfmerchanthtmlparsing>();
 			}
 			
 			if(StringUtils.isBlank(merchantParsingString))
 			{
-				System.out.println("Could find the merchant, but not the mapping! Skipping");
+				System.out.println("Exception: Could find the merchant, but not the mapping! Skipping");
 				return new ArrayList<Tblpfmerchanthtmlparsing>();
 			}
 	
 			try {
 				return this.mapper.readValue(merchantParsingString, new TypeReference<List<Tblpfmerchanthtmlparsing>>(){});
 			} catch (JsonParseException e) {
-				System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD doesn't seem to have a valid format");
+				System.out.println("Exception: While trying to get the merchant parsing instructions, the JSON response by the CRUD doesn't seem to have a valid format");
 				e.printStackTrace();
 			} catch (JsonMappingException e) {
-				System.out.println("While trying to get the merchant parsing instructions, the JSON response by the CRUD couldn't be mapped with a valid Tblpfmerchanthtmlparsing object");
+				System.out.println("Exception: While trying to get the merchant parsing instructions, the JSON response by the CRUD couldn't be mapped with a valid Tblpfmerchanthtmlparsing object");
 				e.printStackTrace();
 			} catch (IOException e) {
-				System.out.println("While trying to get the merchant parsing instructions, a low level I/O exception occurred");
+				System.out.println("Exception: While trying to get the merchant parsing instructions, a low level I/O exception occurred");
 				e.printStackTrace();
 			}
     	} catch(Exception e) {
@@ -534,11 +534,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
     	ProductService productService = new ProductService();
 
     	DataExtractor dataExtractor;
-    	System.out.println(dataSource==null);
     	switch(dataSource.getContentType())
     	{
 	    	case HTML:
-	    		System.out.println("It's html");
 	    		dataExtractor = new HtmlDataExtractor();
 	    		break;
 	    	case JSON:
@@ -949,7 +947,6 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 	
 				if(winery.getId()==null)
 				{
-					System.out.println(winery);
 					String id;
 					try {
 						id = RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "wineries?action=addWinery", this.mapper.writeValueAsString(winery), null);
@@ -1043,12 +1040,9 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 		{
 			wineType.setName(wineTypeName);
 			wineType.setDeleted(false);
-			//System.out.println(wineType);
 			String response = null;
 			try {
-				//System.out.println(this.mapper.writeValueAsString(wineType));
 				response = RequestsCreator.createPostRequest(this.properties.getProperty("crud.url"), "winetypes?action=addWineType", this.mapper.writeValueAsString(wineType), null);
-				//System.out.println(response);
 				wineType.setId(Integer.parseInt(response));
 			} catch (NumberFormatException e) {
 				pfLogService.ProductProcessing(partner, logTypeErrorName, partnerProduct, "", 0, "Id returned by the CRUD while inserting the wine type was not a proper number: "+response);

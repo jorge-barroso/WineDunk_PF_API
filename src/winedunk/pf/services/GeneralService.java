@@ -136,7 +136,6 @@ public class GeneralService {
 			{
 				if(variablesList[currentTurn] != null && !variablesList[currentTurn].equals("")) 
 				{ 
-					System.out.println("Entered if for: " + variablesList[currentTurn]);
 					generalMap = (Map<Integer, String>) request.getSession().getAttribute(s);
 					Integer result = MapGetter.getKeyFromValue(generalMap, variablesList[currentTurn]);
 					
@@ -286,7 +285,6 @@ public class GeneralService {
 
 	        // Send message
 	        Transport.send(message);
-	        System.out.println("Sent message successfully");
 	      } catch (MessagingException mex) { mex.printStackTrace(); }
 	    
 		return false;
@@ -333,7 +331,6 @@ public class GeneralService {
 	public List<viewBestOffersbyMerchants> getBestOffers(Integer merchantId) throws IOException
 	{
 		String relURL = "bestOffersByMerchantView?action=getOffersForMerchant&id=" + merchantId;
-		System.out.println("CRUD: " + crudURL); //TODO DELETE
 		String offersResponse = RequestsCreator.createGetRequest(crudURL, relURL, null);
 		ObjectMapper mapper = new ObjectMapper();
 		

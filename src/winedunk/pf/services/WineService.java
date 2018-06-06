@@ -112,7 +112,6 @@ public class WineService {
 	 */
 	public tblCountries getCountry(String countryName)
 	{
-		//System.out.println("Looking for country: "+countryName);
 		countryName = countryName.trim();
 		if(countryName.contains("Product of"));
 			countryName = countryName.replace("Product of ", "");
@@ -161,8 +160,6 @@ public class WineService {
 			if(cc==null)
 			{
 				if(!countryName.equals(NoDataFieldsValues.NO_COUNTRY))
-					System.out.println("The name of the country "+countryName+" doesn't follow the standards so it couldn't be found");
-
 				country = this.getCountry(NoDataFieldsValues.NO_COUNTRY);
 			}
 			else
@@ -445,7 +442,6 @@ public class WineService {
 			}
 			else
 			{
-				System.out.println("Merchant name found but not matched");
 				wineName = wineName.replace(merchantName, "");
 			}
 		}
@@ -476,14 +472,14 @@ public class WineService {
 			try {
 		    	this.ftp.connect(properties.getProperty("ftp.host.address"), Integer.parseInt(properties.getProperty("ftp.port")));
 			} catch (IOException e) {
-				System.out.println("Something went wrong while reaching the ftp server");
+				System.out.println("Exception: Something went wrong while reaching the ftp server");
 				e.printStackTrace();
 				return;
 			}
 		    try {
 		    	this.ftp.login(properties.getProperty("ftp.username"), properties.getProperty("ftp.password"));
 			} catch (IOException e) {
-				System.out.println("Something went wrong while loging in to the ftp server");
+				System.out.println("Exception: Something went wrong while loging in to the ftp server");
 				e.printStackTrace();
 				return;
 			}
@@ -496,7 +492,7 @@ public class WineService {
 			try {
 				this.ftp.setFileType(FTP.BINARY_FILE_TYPE);
 			} catch (IOException e1) {
-				System.out.println("An error occurred when setting ftp file transaction type to binary");
+				System.out.println("Exception: An error occurred when setting ftp file transaction type to binary");
 				e1.printStackTrace();
 				return;
 			}
@@ -520,7 +516,7 @@ public class WineService {
 					ftp.logout();
 					ftp.disconnect();
 				} catch (IOException e) {
-					System.out.println("Couldn't disconnect from the server");
+					System.out.println("Exception: Couldn't disconnect from the server");
 					e.printStackTrace();
 				}
 			}

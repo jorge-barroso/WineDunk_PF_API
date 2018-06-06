@@ -104,19 +104,19 @@ public class ProductsProcessor extends HttpServlet {
 				try {
 					tblpfs = getProductFeeds(requestBody.has("id") ? requestBody.get("id").asInt() : null);
 				} catch (JsonParseException e1) {
-					System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD doesn't seem to have a valid JSON format");
+					System.out.println("Exception: While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD doesn't seem to have a valid JSON format");
 					e1.printStackTrace();
 					return;
 				} catch (JsonMappingException e1) {
-					System.out.println("While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD couldn't be mapped to a proper List of Tblpfproduct");
+					System.out.println("Exception: While trying to get a list with all the products (or only those from the specified product feed if requested manually), the response from the CRUD couldn't be mapped to a proper List of Tblpfproduct");
 					e1.printStackTrace();
 					return;
 				} catch (NumberFormatException e1) {
-					System.out.println("The ProductFeed id provided was not a proper number");
+					System.out.println("Exception: The ProductFeed id provided was not a proper number");
 					e1.printStackTrace();
 					return;
 				} catch (IOException e1) {
-					System.out.println("Couldn't reach the CRUD or there was a low-level I/O error, please check the server");
+					System.out.println("Exception: Couldn't reach the CRUD or there was a low-level I/O error, please check the server");
 					e1.printStackTrace();
 					return;
 				}

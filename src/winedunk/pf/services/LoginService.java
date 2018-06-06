@@ -149,22 +149,18 @@ public class LoginService {
 		
 		//Check all required data is present
 		checkNotNull();
-		System.out.println("Null reached and passed. Errors: " + registerErrors.toString());
 		
 		// Validate email and check they match
 		emailsOK();
-		System.out.println("Emails reached and passed. Errors: " + registerErrors.toString());
 
 		// Check passwords are strong enough and match
 		passwordsOK();
-		System.out.println("PWs reached and passed. Errors: " + registerErrors.toString());
 
 		//Check the user is over 18 years old
 		isOverAged();
-		System.out.println("Date reached and passed. Errors: " + registerErrors.toString());
 
 		//Checking everything is fine
-		if(!registerErrors.isEmpty()) { System.out.println("Will return false"); return false; }
+		if(!registerErrors.isEmpty()) { return false; }
 		//Converting to bytes and encrypting password
 		String encryptedPassword = encryptPassword();
 		
@@ -217,10 +213,10 @@ public class LoginService {
 	
 	private void checkNotNull()
 	{
-		if(name     == null || surname == null) 				{ System.out.println("Name null"); registerErrors.add("nameNotEntered"); }
-		if(email    == null || repeatEmail == null) 			{ System.out.println("Email null"); registerErrors.add("emailsNotEntered"); } 
-		if(password == null || repeatPassword == null) 			{ System.out.println("Password null"); registerErrors.add("passwordsNotEntered"); }
-		if(day      == null || month == null || year == null) 	{ System.out.println("Date null"); registerErrors.add("dateNotEntered"); }
+		if(name     == null || surname == null) 				{ registerErrors.add("nameNotEntered"); }
+		if(email    == null || repeatEmail == null) 			{ registerErrors.add("emailsNotEntered"); } 
+		if(password == null || repeatPassword == null) 			{ registerErrors.add("passwordsNotEntered"); }
+		if(day      == null || month == null || year == null) 	{ registerErrors.add("dateNotEntered"); }
 	}
 	
 	private void emailsOK() throws AddressException
@@ -229,8 +225,8 @@ public class LoginService {
 		InternetAddress emailAddress = new InternetAddress(email);
 		
 		try { emailAddress.validate(); } 
-		catch (AddressException e) { System.out.println("Email wrong format"); registerErrors.add("wrongEmailFormat"); }
-		if(!email.equals(repeatEmail)) { System.out.println("Emails don't match"); registerErrors.add("emailsDontMatch"); }
+		catch (AddressException e) { registerErrors.add("wrongEmailFormat"); }
+		if(!email.equals(repeatEmail)) { registerErrors.add("emailsDontMatch"); }
 	}
 	
 	private void passwordsOK()
@@ -243,8 +239,8 @@ public class LoginService {
 		pattern = Pattern.compile(passwordPattern);
 		matcher = pattern.matcher(password);
 		
-		if(!matcher.matches()) { System.out.println("PWs not good"); registerErrors.add("passwordWrongFormatted"); }
-		if(!password.equals(repeatPassword)) { System.out.println("PWs dont match"); registerErrors.add("passwordsDontMatch"); }
+		if(!matcher.matches()) { registerErrors.add("passwordWrongFormatted"); }
+		if(!password.equals(repeatPassword)) { registerErrors.add("passwordsDontMatch"); }
 	}
 	
 	private void isOverAged()
@@ -258,8 +254,8 @@ public class LoginService {
 			LocalDate lDate = LocalDate.parse(date);
 			LocalDate now = LocalDate.now();
 			long yearsPassed = ChronoUnit.YEARS.between(lDate, now);
-			if(yearsPassed < 18) { System.out.println("Not old enough"); registerErrors.add("notOldEnough"); }
-		} catch (DateTimeParseException parseEx) { System.out.println("Bad date"); registerErrors.add("invalidDate"); } 
+			if(yearsPassed < 18) { registerErrors.add("notOldEnough"); }
+		} catch (DateTimeParseException parseEx) { registerErrors.add("invalidDate"); } 
 	}
 	
 	private String createJson(String hashedPassword, String loginToken)

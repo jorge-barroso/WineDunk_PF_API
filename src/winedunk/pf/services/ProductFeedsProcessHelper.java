@@ -14,7 +14,7 @@ public class ProductFeedsProcessHelper {
 		try {
 			RequestsCreator.createGetRequest(this.hostUrl, "ProductFeeds?action=failStandardisation&id="+pfId, null);
 		} catch (IOException e) {
-			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
+			System.out.println("Exception: While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
 			e.printStackTrace();
 			return;
 		}
@@ -25,7 +25,7 @@ public class ProductFeedsProcessHelper {
 		try {
 			RequestsCreator.createGetRequest(this.hostUrl, "ProductFeeds?action=okStandardisation&id="+pfId, null);
 		} catch (IOException e) {
-			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
+			System.out.println("Exception: While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
 			e.printStackTrace();
 			return;
 		}
@@ -36,7 +36,7 @@ public class ProductFeedsProcessHelper {
 		try {
 			RequestsCreator.createGetRequest(this.hostUrl, "ProductFeeds?action=processingStandardisation&id="+pfId, null);
 		} catch (IOException e) {
-			System.out.println("While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
+			System.out.println("Exception: While sending a request to flag the product feed "+pfId+" as failed to the CRUD, this one wans't reachable");
 			e.printStackTrace();
 			return;
 		}

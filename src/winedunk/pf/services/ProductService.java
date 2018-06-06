@@ -92,7 +92,6 @@ public class ProductService {
 
 		//As paths start with a first slash, this means that index 1 of the array will be the first effective section as well
 		String[] pathSections = url.getPath()==null ? new String[0] : url.getPath().split("\\/");
-		System.out.println(Arrays.asList(pathSections));
 
 		//Parse query string into a map
 		String[] queryParams = url.getQuery()==null ? new String[0] : url.getQuery().split("\\&");

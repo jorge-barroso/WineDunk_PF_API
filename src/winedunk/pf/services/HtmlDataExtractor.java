@@ -36,8 +36,6 @@ public final class HtmlDataExtractor implements DataExtractor {
 
 		final Document html = Jsoup.parse(contents, "UTF-8");
 
-//		System.out.println(html);
-
 		final Map<String, String> wineValues = new HashMap<String, String>((int)Math.ceil(parsingInstructions.size()/0.75));
     	try {
 	    	//Extract all elements from html
@@ -56,7 +54,6 @@ public final class HtmlDataExtractor implements DataExtractor {
 	    			if(!isBlank)
 	    				continue;
 
-	    			//System.out.println(parsingInstruction.getNameInWeb());
 	    			//if we don't find the current keyword go for the next one
 	        		if(parsingInstruction.getMustMatch()!=null && parsingInstruction.getMustMatch())
 	        		{
@@ -122,7 +119,6 @@ public final class HtmlDataExtractor implements DataExtractor {
 	    			}
 
 	    			if(parsingInstruction.getTblpfextractioncolumn().getColumnName().equals(TblWineFields.APPELLATION))
-	    				System.out.println(parsingInstruction.getTblpfextractioncolumn().getColumnName() + " == " + extractedValue);
 	    			//Store values
 	    			if(!StringUtils.isBlank(extractedValue))
 	    				wineValues.put(parsingInstruction.getTblpfextractioncolumn().getColumnName(), extractedValue);
@@ -130,12 +126,6 @@ public final class HtmlDataExtractor implements DataExtractor {
 	    	}
     	} catch (Exception e) {
     		e.printStackTrace();
-    	}
-
-    	System.out.println("Extracted data:");
-    	for(final Map.Entry<String, String> entry : wineValues.entrySet())
-    	{
-    		System.out.println(entry.getKey()+" = "+entry.getValue());
     	}
     	return wineValues;
 	}

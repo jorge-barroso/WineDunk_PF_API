@@ -151,17 +151,17 @@ public class ProductFeedsRunnable implements Runnable {
 
 									}
 								} catch (JsonParseException e) {
-									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
+									System.out.println("Exception: While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one doesn't seem to have a proper JSON format");
 									e.printStackTrace();
 									helper.fail(pf.getId());
 									return;
 								} catch (JsonMappingException e) {
-									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one couldn't be mapped to a Tblpfproduct object");
+									System.out.println("Exception: While trying to get the possibly existing product from the CRUD before updating/inserting it, the response provided by this one couldn't be mapped to a Tblpfproduct object");
 									e.printStackTrace();
 									helper.fail(pf.getId());
 									return;
 								} catch (IOException e) {
-									System.out.println("While trying to get the possibly existing product from the CRUD before updating/inserting it, couldn't reach the CRUD or a low-level I/O exception occurred, please check the server");
+									System.out.println("Exception: While trying to get the possibly existing product from the CRUD before updating/inserting it, couldn't reach the CRUD or a low-level I/O exception occurred, please check the server");
 									e.printStackTrace();
 									helper.fail(pf.getId());
 									return;
@@ -199,17 +199,17 @@ public class ProductFeedsRunnable implements Runnable {
 										
 										product.setId(Integer.parseInt(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=addProduct", mapper.writeValueAsString(product), null)));
 									} catch (NumberFormatException e) {
-										System.out.println("After adding the product to the database, the id returned doesn't seem to be a valid number");
+										System.out.println("Exception: After adding the product to the database, the id returned doesn't seem to be a valid number");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
 									} catch (JsonProcessingException e) {
-										System.out.println("Whiles trying to add a new product to the database, there was a problem while serialising it");
+										System.out.println("Exception: Whiles trying to add a new product to the database, there was a problem while serialising it");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
 									} catch (IOException e) {
-										System.out.println("Whiles trying to add a new product to the database, the CRUD wasn't reachable");
+										System.out.println("Exception: Whiles trying to add a new product to the database, the CRUD wasn't reachable");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
@@ -220,14 +220,14 @@ public class ProductFeedsRunnable implements Runnable {
 									try {
 										final Boolean updated = Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=updateProduct", mapper.writeValueAsString(product), null));
 										if(!updated)
-											System.out.println("Something went wrong updating the product on `tblPFProducts`");
+											System.out.println("Exception: Something went wrong updating the product on `tblPFProducts`");
 									} catch (JsonProcessingException e) {
-										System.out.println("Whiles trying to update a product on `tblPFProducts`, there was a problem while serialising it");
+										System.out.println("Exception: Whiles trying to update a product on `tblPFProducts`, there was a problem while serialising it");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
 									} catch (IOException e) {
-										System.out.println("Whiles trying to update a product on `tblPFProducts`, the CRUD wasn't reachable");
+										System.out.println("Exception: Whiles trying to update a product on `tblPFProducts`, the CRUD wasn't reachable");
 										e.printStackTrace();
 										helper.fail(pf.getId());
 										return;
@@ -264,9 +264,7 @@ public class ProductFeedsRunnable implements Runnable {
 						if(!productsFound.contains(pfProduct.getId()))
 						{
 							if(!Boolean.parseBoolean(RequestsCreator.createPostRequest(properties.getProperty("crud.url"), "Products?action=deleteProduct", "{\"id\" : "+pfProduct.getId()+"}", null)))
-								System.out.println("Couldn't delete product "+pfProduct.getId());
-							else
-								System.out.println("Product "+pfProduct.getId()+" deleted");
+								System.out.println("Exception: Couldn't delete product "+pfProduct.getId());
 						}
 					}
 

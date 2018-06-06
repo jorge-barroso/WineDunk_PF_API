@@ -38,7 +38,7 @@ public class RequestsCreator extends EncodeURL {
 	{
 		//Create request
 		String fullURL = urlPath + relURL;
-		System.out.println("Full URL: "+fullURL);
+		System.out.println("RequestsCreator / createPostRequest ("+fullURL+")");
 
 		return createPostRequest(fullURL, content, headers);
 	}
@@ -70,7 +70,7 @@ public class RequestsCreator extends EncodeURL {
 	public static String createGetRequest(String urlPath, Map<String, String> headers) throws IOException
 	{
 		//Create request
-		System.out.println("Full URL: "+urlPath);
+		System.out.println("RequestsCreator / createGetRequest ("+urlPath+")");
 		URL url = new URL(urlPath);
 		HttpURLConnection con = url.getProtocol().equals("https") ? startHttpsConnection(url, false, null, headers) : startHttpConnection(url, false, null, headers);
 
@@ -251,7 +251,6 @@ public class RequestsCreator extends EncodeURL {
 
 		in.close();
 
-		//System.out.println(responseBuffer.toString());
 		return responseBuffer.toString();
 	}
 }
