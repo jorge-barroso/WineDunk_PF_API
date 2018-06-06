@@ -3,6 +3,9 @@ package winedunk.pf.models;
 import java.io.Serializable;
 
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedQueries;
@@ -10,7 +13,6 @@ import javax.persistence.NamedQuery;
 import javax.persistence.Table;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 /**
@@ -24,17 +26,28 @@ import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 	@NamedQuery(name="tblWinesGrapeVarieties.findByWineAndGrape", query="SELECT wg FROM TblWinesGrapeVariety wg WHERE wg.wine = :wine AND wg.grapeVariety = :grape")
 })
 @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class TblWinesGrapeVariety implements Serializable {	
 	private static final long serialVersionUID = 1L;
 
-	@ManyToOne
-	@JoinColumn(name = "wineId")
-	private tblWines wine;
+   @Id
+   @GeneratedValue(strategy=GenerationType.IDENTITY)
+   private Integer id;
 
-	@ManyToOne
-	@JoinColumn(name = "grapeVarietyId")
-	private tblGrapeVarieties grapeVariety;
+   @ManyToOne
+   @JoinColumn(name = "wineId")
+   private tblWines wine;
+
+   @ManyToOne
+   @JoinColumn(name = "grapeVarietyId")
+   private tblGrapeVarieties grapeVariety;
+
+	public Integer getId() {
+		return id;
+	}
+	
+	public void setId(Integer id) {
+		this.id = id;
+	}
 	
 	public tblWines getWine() {
 		return wine;
@@ -53,38 +66,7 @@ public class TblWinesGrapeVariety implements Serializable {
 	}
 
 	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((grapeVariety == null) ? 0 : grapeVariety.hashCode());
-		result = prime * result + ((wine == null) ? 0 : wine.hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		TblWinesGrapeVariety other = (TblWinesGrapeVariety) obj;
-		if (grapeVariety == null) {
-			if (other.grapeVariety != null)
-				return false;
-		} else if (!grapeVariety.equals(other.grapeVariety))
-			return false;
-		if (wine == null) {
-			if (other.wine != null)
-				return false;
-		} else if (!wine.equals(other.wine))
-			return false;
-		return true;
-	}
-
-	@Override
 	public String toString() {
-		return "TblWinesGrapeVariety [wine=" + wine + ", grapeVariety=" + grapeVariety + "]";
+		return "TblWinesGrapeVariety [id=" + id + ", wine=" + wine + ", grapeVariety=" + grapeVariety + "]";
 	}
 }

@@ -150,46 +150,32 @@ public class ProductsProcessRunnable implements Callable<Integer>{
 
     				// updating `tblWines`.`imageURL if null
 					UpdateWineImageIfNull(partnerProduct.getTblWines(), product.getImageURL(), partnerProduct.getPartnerId(), product.getPartnerProductId() );
-					
-			    	// checking if current product should be update or not based on `tblPartnersProducts`.`lastUpdated`
-					if ((partnerProduct.getLastUpdated() == null) ||
-						(
-							(partnerProduct.getLastUpdated() != null) &&
-							(product.getTblpf().getLastStandardisation() != null) &&
-							(partnerProduct.getLastUpdated().getTime() < product.getTblpf().getLastStandardisation().getTime())
-						)) {
 						
-						// if either "partnerProduct.getLastUpdated() == null" or "partnerProduct.getLastUpdated()" is older than product.getTblpf().getLastStandardisation(), we have to process this product
-			    		// checking if product price has to be updated
-			    		if (product.getPrice() != null) {
-			    		
-			    			if (!partnerProduct.getPartnerProductPrice().equals(product.getPrice())) {
-				    			// updating price
-				    			if (partnersProductsService.updateProduct(partnerProduct.getId(), product.getPrice())) {
-				    				pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeInformationName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price updated: `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", old `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice() );
-				    				return partnerProduct.getId();
-				    			} else {
-									pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeErrorName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price not updated in existing product in `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", old `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice() );
-									return null;
-				    			}
-				    		} else {
-				    			// price in PF is the same as the one in `tblPartnersProducts`.`partnerProductPrice`, so there is no change, nothing to do here
-				    			pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeInformationName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price not updated in `tblPartnersProducts` because PF price and partnerProductPrice are the same [`id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", PF price=" + product.getPrice() + "]");
-				    			return null;
-				    		}
-			    			
+					// if either "partnerProduct.getLastUpdated() == null" or "partnerProduct.getLastUpdated()" is older than product.getTblpf().getLastStandardisation(), we have to process this product
+		    		// checking if product price has to be updated
+		    		if (product.getPrice() != null) {
+		    		
+		    			if (!partnerProduct.getPartnerProductPrice().equals(product.getPrice())) {
+			    			// updating price
+			    			if (partnersProductsService.updateProduct(partnerProduct.getId(), product.getPrice())) {
+			    				pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeInformationName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price updated: `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", old `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice() );
+			    				return partnerProduct.getId();
+			    			} else {
+								pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeErrorName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price not updated in existing product in `tblPartnersProducts` | `id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", old `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", new price=" + product.getPrice() );
+								return null;
+			    			}
 			    		} else {
-			    			// the price that comes into PF is null, so nothing to do here, just report it
-			    			pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeWarningName, product.getPartnerProductId() , "", 0, "Product price not updated because PF product price = null: PF partnerId=" + product.getTblpf().getPartnerId().getId() + ", PF partnerproductId=" + product.getPartnerProductId() );
+			    			// price in PF is the same as the one in `tblPartnersProducts`.`partnerProductPrice`, so there is no change, nothing to do here
+			    			pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeInformationName, product.getPartnerProductId() , "tblPartnersProducts", partnerProduct.getId(), "Product price not updated in `tblPartnersProducts` because PF price and partnerProductPrice are the same [`id`=" + partnerProduct.getId() + ", `partnerProductPrice`=" + partnerProduct.getPartnerProductPrice() + ", PF price=" + product.getPrice() + "]");
 			    			return null;
 			    		}
-			    		
-			    	} else {
-			    		// "partnerProduct.getLastUpdated()" newer than "product.getTblpf().getLastStandardisation()"
-			    		pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeInformationName, product.getPartnerProductId() , "", 0, "Product price not updated because existing product `LastUpdated`=" + partnerProduct.getLastUpdated().toString() + " is newer than PF `LastStandardisation`=" + product.getTblpf().getLastStandardisation().toString() );
-			    		return null;
-			    	}
-					
+		    			
+		    		} else {
+		    			// the price that comes into PF is null, so nothing to do here, just report it
+		    			pfLogService.ProductProcessing(partnerProduct.getPartnerId(), logTypeWarningName, product.getPartnerProductId() , "", 0, "Product price not updated because PF product price = null: PF partnerId=" + product.getTblpf().getPartnerId().getId() + ", PF partnerproductId=" + product.getPartnerProductId() );
+		    			return null;
+		    		}
+
 				} else {
 					
 					// NEW PRODUCT

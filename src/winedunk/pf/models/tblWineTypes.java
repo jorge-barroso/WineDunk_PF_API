@@ -13,13 +13,11 @@ import javax.persistence.Table;
 import javax.persistence.Transient;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 
 @Entity
 @Table(name = "tblWineTypes")
 @NamedQuery(name = "tblWineTypes.findByName", query = "SELECT t from tblWineTypes t WHERE t.name = :name")
-@JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
+//  @JsonIdentityInfo(generator=ObjectIdGenerators.IntSequenceGenerator.class, property="@id")
 public class tblWineTypes {
 
 	@Transient
@@ -37,7 +35,8 @@ public class tblWineTypes {
 		this.id = id;
 	}
 
-	@Column(name = "name")
+	// aripe length attribute added
+	@Column(name= "name", length = 100)
 	private String name;
 
 	public String getName() {
